@@ -113,70 +113,43 @@ void setup()
   delay (random (500, 1000));
 }
 
-void loop() {
- // put your main code here, to run repeatedly:
+char currentCommand = 'S';
+char lastCommand = 'S';
+
+void updateCommand() {
   if (Serial.available()) {
-    int cmd = Serial.read();
-    //Serial.println(cmd);
-    //Serial.write(cmd);
-    switch (cmd)
-  {
-  case 'F':
-        Serial.println("Step forward");
-      cierra();
-    delay (150);
-    happy();
-        step_forward(2);
-        cmd = ' ';
-        break;
-      case 'B':
-        Serial.println("Step back");
-        cierra();
-    delay (150);
-    triste();
-        step_back(2);
-        cmd = ' ';
-        break;
-      case 'L':
-        Serial.println("Turn left");
-         cierra();
-    delay (150);
-    enfado1();
-    
-        turn_left(2);
-        cmd = ' ';
-        break;
-      case 'R':
-        Serial.println("Turn right");
-         cierra();
-    delay (150);
-    enfado();
-    
-        turn_right(2);
-        cmd = ' ';
-        break;
-    
-        break;
-      case 'U':
-        Serial.println("Hand shake");
-        hand_shake(n_step);
-        cmd = ' ';
-        break;
-      case 'W':
-        Serial.println("Hand wave");
-        hand_wave(n_step);
-        cmd = ' ';
-        break;
-      case 'V':
-        Serial.println("body dance");
-         body_dance(n_step);
-        cmd = ' ';
-      default:
-        Serial.println("Error");
-        cmd = ' ';
-        break;
-        
+    char cmd = Serial.read();
+    if (cmd == 'F' || cmd == 'B' || cmd == 'L' || cmd == 'R' || cmd == 'S' || cmd == 'D' || cmd == 'U' || cmd == 'X') {
+      currentCommand = cmd;
+    }
   }
+}
+
+void loop() {
+  updateCommand();
+
+  if (currentCommand != lastCommand) {
+    switch (currentCommand) {
+      case 'F': cierra(); happy(); Serial.println("Walk Forward"); break;
+      case 'B': cierra(); triste(); Serial.println("Walk Backward"); break;
+      case 'L': cierra(); enfado1(); Serial.println("Turn Left"); break;
+      case 'R': cierra(); enfado(); Serial.println("Turn Right"); break;
+      case 'S': cierra(); abre(); stand(); Serial.println("Stop/Stand"); break;
+      case 'U': cierra(); happy(); stand(); Serial.println("Stand"); break;
+      case 'X': cierra(); triste(); sit(); Serial.println("Sit"); break;
+      case 'D': cierra(); happy(); Serial.println("Dance"); break;
+    }
+    lastCommand = currentCommand;
+  }
+
+  // Continuously execute the current movement state
+  switch (currentCommand) {
+    case 'F': step_forward(1); break;
+    case 'B': step_back(1); break;
+    case 'L': turn_left(1); break;
+    case 'R': turn_right(1); break;
+    case 'D': body_dance(1); break;
+    // For 'U', 'X', 'S' we do nothing in the continuous loop since they are one-time postures
   }
 }
 
@@ -754,15 +727,17 @@ void set_site(int leg, float x, float y, float z)
 
 /*
   - wait one of end points move to expect site
-  - blocking function
+  - blocking function but checks Serial for real-time responsiveness
    ---------------------------------------------------------------------------*/
 void wait_reach(int leg)
 {
-  while (1)
+  while (1) {
+    updateCommand();
     if (site_now[leg][0] == site_expect[leg][0])
       if (site_now[leg][1] == site_expect[leg][1])
         if (site_now[leg][2] == site_expect[leg][2])
           break;
+  }
 }
 
 /*
