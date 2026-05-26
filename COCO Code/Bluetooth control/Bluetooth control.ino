@@ -60,7 +60,7 @@ int s_flag=1;
 
 void setup() 
 {
-  Serial.begin(9600);
+  Serial.begin(115200);
   display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDR);
   display.clearDisplay();
   display.display();
@@ -116,67 +116,76 @@ void setup()
 }
 
 void loop() {
- // put your main code here, to run repeatedly:
+  static int last_cmd = 0;
   if (Serial.available()) {
     int cmd = Serial.read();
-    //Serial.println(cmd);
-    //Serial.write(cmd);
+    
+    // Ignore newline or carriage return characters
+    if (cmd == '\n' || cmd == '\r') return;
+
     switch (cmd)
     {
       case 'F':
-        Serial.println("Step forward");
-        cierra();
-        delay(150);
-        happy();
+        if (last_cmd != 'F') {
+          Serial.println("Step forward");
+          cierra();
+          delay(150);
+          happy();
+        }
         step_forward(1);
-        cmd = ' ';
+        last_cmd = cmd;
         break;
       case 'B':
-        Serial.println("Step back");
-        cierra();
-        delay(150);
-        triste();
+        if (last_cmd != 'B') {
+          Serial.println("Step back");
+          cierra();
+          delay(150);
+          triste();
+        }
         step_back(1);
-        cmd = ' ';
+        last_cmd = cmd;
         break;
       case 'L':
-        Serial.println("Turn left");
-        cierra();
-        delay(150);
-        enfado1();
+        if (last_cmd != 'L') {
+          Serial.println("Turn left");
+          cierra();
+          delay(150);
+          enfado1();
+        }
         turn_left(1);
-        cmd = ' ';
+        last_cmd = cmd;
         break;
       case 'R':
-        Serial.println("Turn right");
-        cierra();
-        delay(150);
-        enfado();
+        if (last_cmd != 'R') {
+          Serial.println("Turn right");
+          cierra();
+          delay(150);
+          enfado();
+        }
         turn_right(1);
-        cmd = ' ';
+        last_cmd = cmd;
         break;
       case 'U':
         Serial.println("Stand");
         stand();
-        cmd = ' ';
+        last_cmd = cmd;
         break;
       case 'D':
         Serial.println("Dance");
         body_dance(n_step);
-        cmd = ' ';
+        last_cmd = cmd;
         break;
       case 'X':
         Serial.println("Sit");
         sit();
-        cmd = ' ';
+        last_cmd = cmd;
         break;
       case 'S':
         Serial.println("Stop");
-        cmd = ' ';
+        last_cmd = cmd;
         break;
       default:
         Serial.println("Unknown command");
-        cmd = ' ';
         break;
     }
   }
