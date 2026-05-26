@@ -1,8 +1,6 @@
-/*
- * Project: COCO - Quad Spider Arduino Based Robot
- * Author: skashyam bastakoti
- * GitHub: https://github.com/sakxam-xeetri
- */
+//Robot Lk
+//Robot Lk YouTube Channel - https://www.youtube.com/@RobotLk
+//Robot Lk Website - https://robotlk.com/
 #include <Servo.h>    //to define and control servos
 #include <FlexiTimer2.h>//to set a timer to manage all servos
 #include <Wire.h>
@@ -60,7 +58,7 @@ int s_flag=1;
 
 void setup() 
 {
-  Serial.begin(115200);
+  Serial.begin(9600);
   display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDR);
   display.clearDisplay();
   display.display();
@@ -116,78 +114,71 @@ void setup()
 }
 
 void loop() {
-  static int last_cmd = 0;
+ // put your main code here, to run repeatedly:
   if (Serial.available()) {
     int cmd = Serial.read();
     
-    // Ignore newline or carriage return characters
-    if (cmd == '\n' || cmd == '\r') return;
-
     switch (cmd)
     {
       case 'F':
-        if (last_cmd != 'F') {
-          Serial.println("Step forward");
-          cierra();
-          delay(150);
-          happy();
-        }
-        step_forward(1);
-        last_cmd = cmd;
+        Serial.println("Step forward");
+        cierra();
+        delay(15); // Reduced delay to keep response time fast
+        happy();
+        step_forward(1); // Reduced to 1 step for hold-to-move responsiveness
         break;
       case 'B':
-        if (last_cmd != 'B') {
-          Serial.println("Step back");
-          cierra();
-          delay(150);
-          triste();
-        }
+        Serial.println("Step back");
+        cierra();
+        delay(15);
+        triste();
         step_back(1);
-        last_cmd = cmd;
         break;
       case 'L':
-        if (last_cmd != 'L') {
-          Serial.println("Turn left");
-          cierra();
-          delay(150);
-          enfado1();
-        }
+        Serial.println("Turn left");
+        cierra();
+        delay(15);
+        enfado1();
         turn_left(1);
-        last_cmd = cmd;
         break;
       case 'R':
-        if (last_cmd != 'R') {
-          Serial.println("Turn right");
-          cierra();
-          delay(150);
-          enfado();
-        }
+        Serial.println("Turn right");
+        cierra();
+        delay(15);
+        enfado();
         turn_right(1);
-        last_cmd = cmd;
         break;
       case 'U':
-        Serial.println("Stand");
-        stand();
-        last_cmd = cmd;
+        Serial.println("Hand shake");
+        hand_shake(1);
         break;
-      case 'D':
-        Serial.println("Dance");
-        body_dance(n_step);
-        last_cmd = cmd;
+      case 'W':
+        Serial.println("Hand wave");
+        hand_wave(1);
+        break;
+      case 'V':
+        Serial.println("body dance");
+        body_dance(1);
+        break;
+      case 'S':
+        Serial.println("Stop/Stand");
+        stand();
         break;
       case 'X':
         Serial.println("Sit");
         sit();
-        last_cmd = cmd;
         break;
-      case 'S':
-        Serial.println("Stop");
-        last_cmd = cmd;
+      case '1'...'9': 
+        // Dynamic speed multiplier from (0.5 to 2.5)
+        speed_multiple = (cmd - '0') * 0.25 + 0.25; 
+        Serial.print("Speed Mult: ");
+        Serial.println(speed_multiple);
         break;
       default:
-        Serial.println("Unknown command");
         break;
     }
+    // Clear buffer to prevent command pile-up lag
+    while(Serial.available()) Serial.read(); 
   }
 }
 
