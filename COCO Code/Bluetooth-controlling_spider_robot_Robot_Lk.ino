@@ -117,68 +117,66 @@ void loop() {
  // put your main code here, to run repeatedly:
   if (Serial.available()) {
     int cmd = Serial.read();
-    
+    //Serial.println(cmd);
+    //Serial.write(cmd);
     switch (cmd)
-    {
-      case 'F':
+  {
+  case 'F':
         Serial.println("Step forward");
-        cierra();
-        delay(15); // Reduced delay to keep response time fast
-        happy();
-        step_forward(1); // Reduced to 1 step for hold-to-move responsiveness
+      cierra();
+    delay (150);
+    happy();
+        step_forward(2);
+        cmd = ' ';
         break;
       case 'B':
         Serial.println("Step back");
         cierra();
-        delay(15);
-        triste();
-        step_back(1);
+    delay (150);
+    triste();
+        step_back(2);
+        cmd = ' ';
         break;
       case 'L':
         Serial.println("Turn left");
-        cierra();
-        delay(15);
-        enfado1();
-        turn_left(1);
+         cierra();
+    delay (150);
+    enfado1();
+    
+        turn_left(2);
+        cmd = ' ';
         break;
       case 'R':
         Serial.println("Turn right");
-        cierra();
-        delay(15);
-        enfado();
-        turn_right(1);
+         cierra();
+    delay (150);
+    enfado();
+    
+        turn_right(2);
+        cmd = ' ';
+        break;
+    
         break;
       case 'U':
         Serial.println("Hand shake");
-        hand_shake(1);
+        hand_shake(n_step);
+        cmd = ' ';
         break;
       case 'W':
         Serial.println("Hand wave");
-        hand_wave(1);
+        hand_wave(n_step);
+        cmd = ' ';
         break;
       case 'V':
         Serial.println("body dance");
-        body_dance(1);
-        break;
-      case 'S':
-        Serial.println("Stop/Stand");
-        stand();
-        break;
-      case 'X':
-        Serial.println("Sit");
-        sit();
-        break;
-      case '1'...'9': 
-        // Dynamic speed multiplier from (0.5 to 2.5)
-        speed_multiple = (cmd - '0') * 0.25 + 0.25; 
-        Serial.print("Speed Mult: ");
-        Serial.println(speed_multiple);
-        break;
+         body_dance(n_step);
+        cmd = ' ';
       default:
+        Serial.println("Error");
+        cmd = ' ';
         break;
-    }
-    // Clear buffer to prevent command pile-up lag
-    while(Serial.available()) Serial.read(); 
+        
+  }
   }
 }
 
