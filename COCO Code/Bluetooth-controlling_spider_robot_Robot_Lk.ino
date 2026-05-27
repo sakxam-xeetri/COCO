@@ -56,9 +56,38 @@ const float turn_y0 = temp_b * sin(temp_alpha) - turn_y1 - length_side;
 int n_step = 2;
 int s_flag=1;
 
+const int LED_POS_PIN = A0;
+const int LED_NEG_PIN = A1;
+
+void led_off()
+{
+  digitalWrite(LED_POS_PIN, LOW);
+  digitalWrite(LED_NEG_PIN, LOW);
+}
+
+void led_on()
+{
+  digitalWrite(LED_POS_PIN, HIGH);
+  digitalWrite(LED_NEG_PIN, LOW);
+}
+
+void led_blink(unsigned int times)
+{
+  for (unsigned int i = 0; i < times; i++)
+  {
+    led_on();
+    delay(250);
+    led_off();
+    delay(250);
+  }
+}
+
 void setup() 
 {
   Serial.begin(9600);
+  pinMode(LED_POS_PIN, OUTPUT);
+  pinMode(LED_NEG_PIN, OUTPUT);
+  led_off();
   display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDR);
   display.clearDisplay();
   display.display();
@@ -113,43 +142,86 @@ void setup()
   delay (random (500, 1000));
 }
 
-char currentCommand = 'S';
-char lastCommand = 'S';
-
-void updateCommand() {
-  if (Serial.available()) {
-    char cmd = Serial.read();
-    if (cmd == 'F' || cmd == 'B' || cmd == 'L' || cmd == 'R' || cmd == 'S' || cmd == 'D' || cmd == 'U' || cmd == 'X') {
-      currentCommand = cmd;
-    }
-  }
-}
-
 void loop() {
-  updateCommand();
-
-  if (currentCommand != lastCommand) {
-    switch (currentCommand) {
-      case 'F': cierra(); happy(); Serial.println("Walk Forward"); break;
-      case 'B': cierra(); triste(); Serial.println("Walk Backward"); break;
-      case 'L': cierra(); enfado1(); Serial.println("Turn Left"); break;
-      case 'R': cierra(); enfado(); Serial.println("Turn Right"); break;
-      case 'S': cierra(); abre(); stand(); Serial.println("Stop/Stand"); break;
-      case 'U': cierra(); happy(); stand(); Serial.println("Stand"); break;
-      case 'X': cierra(); triste(); sit(); Serial.println("Sit"); break;
-      case 'D': cierra(); happy(); Serial.println("Dance"); break;
-    }
-    lastCommand = currentCommand;
+ // put your main code here, to run repeatedly:
+  if (Serial.available()) {
+    int cmd = Serial.read();
+    //Serial.println(cmd);
+    //Serial.write(cmd);
+    switch (cmd)
+  {
+  case 'F':
+        Serial.println("Step forward");
+      cierra();
+    delay (150);
+    happy();
+        step_forward(2);
+        cmd = ' ';
+        break;
+      case 'B':
+        Serial.println("Step back");
+        cierra();
+    delay (150);
+    triste();
+        step_back(2);
+        cmd = ' ';
+        break;
+      case 'L':
+        Serial.println("Turn left");
+         cierra();
+    delay (150);
+    enfado1();
+    
+        turn_left(2);
+        cmd = ' ';
+        break;
+      case 'R':
+        Serial.println("Turn right");
+         cierra();
+    delay (150);
+    enfado();
+    
+        turn_right(2);
+        cmd = ' ';
+        break;
+    
+        break;
+      case 'U':
+        Serial.println("Hand shake");
+        hand_shake(n_step);
+        cmd = ' ';
+        break;
+      case 'W':
+        Serial.println("Hand wave");
+        hand_wave(n_step);
+        cmd = ' ';
+        break;
+      case 'V':
+        Serial.println("body dance");
+         body_dance(n_step);
+        cmd = ' ';
+        break;
+      case 'O':
+        Serial.println("LED on");
+        led_on();
+        cmd = ' ';
+        break;
+      case 'X':
+        Serial.println("LED off");
+        led_off();
+        cmd = ' ';
+        break;
+      case 'K':
+        Serial.println("LED blink");
+        led_blink(5);
+        cmd = ' ';
+        break;
+      default:
+        Serial.println("Error");
+        cmd = ' ';
+        break;
+        
   }
-
-  // Continuously execute the current movement state
-  switch (currentCommand) {
-    case 'F': step_forward(1); break;
-    case 'B': step_back(1); break;
-    case 'L': turn_left(1); break;
-    case 'R': turn_right(1); break;
-    case 'D': body_dance(1); break;
-    // For 'U', 'X', 'S' we do nothing in the continuous loop since they are one-time postures
   }
 }
 
@@ -727,17 +799,15 @@ void set_site(int leg, float x, float y, float z)
 
 /*
   - wait one of end points move to expect site
-  - blocking function but checks Serial for real-time responsiveness
+  - blocking function
    ---------------------------------------------------------------------------*/
 void wait_reach(int leg)
 {
-  while (1) {
-    updateCommand();
+  while (1)
     if (site_now[leg][0] == site_expect[leg][0])
       if (site_now[leg][1] == site_expect[leg][1])
         if (site_now[leg][2] == site_expect[leg][2])
           break;
-  }
 }
 
 /*

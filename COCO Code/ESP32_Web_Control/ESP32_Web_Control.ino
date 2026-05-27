@@ -1,248 +1,245 @@
 #include <WiFi.h>
 #include <WebServer.h>
+#include <esp_wifi.h>
 
-// Replace with your network credentials
-const char* ssid = "SpiderBot_Wifi";
-const char* password = "spiderbot_pwd";
+// -----------------------------------------------------------------------------
+// ESP32 Wi-Fi controller for the Robot Lk spider robot
+//
+// This sketch does not drive the servos directly. It replaces the Bluetooth
+// module with an ESP32 web page and forwards the same serial commands used by
+// the original robot sketch:
+//   F = forward
+//   B = back
+//   L = left
+//   R = right
+//   U = hand shake
+//   W = hand wave
+//   V = body dance
+//   O = LED on
+//   X = LED off
+//   K = LED blink
+// -----------------------------------------------------------------------------
+
+const char* apSsid = "SpiderRobot";
+const char* apPassword = "12345678";
+
+// ESP32 UART2 pins. Change these if your wiring uses different pins.
+static const int ESP32_RX_PIN = 16;
+static const int ESP32_TX_PIN = 17;
+static const uint32_t ROBOT_BAUD = 9600;
+
+IPAddress apIP(192, 168, 4, 1);
+IPAddress apGateway(192, 168, 4, 1);
+IPAddress apSubnet(255, 255, 255, 0);
 
 WebServer server(80);
 
-// Hardware Serial2 for Arduino communication
-#define RXD2 16
-#define TXD2 17
-
-const char htmlPage[] PROGMEM = R"=====(
+const char indexHtml[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SpiderBot Control</title>
-    <style>
-        :root {
-            --primary: #00d2ff;
-            --bg: #111;
-            --panel: #222;
-            --text: #fff;
-            --btn-bg: #333;
-            --btn-active: #00d2ff;
-        }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            height: 100vh;
-            overflow: hidden;
-            touch-action: manipulation;
-        }
-        .header {
-            width: 100%;
-            padding: 15px 0;
-            text-align: center;
-            background: linear-gradient(90deg, #1a1a1a, #0a0a0a);
-            border-bottom: 2px solid var(--primary);
-            box-shadow: 0 0 15px rgba(0, 210, 255, 0.3);
-            margin-bottom: 20px;
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 24px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
-        .status-panel {
-            display: flex;
-            justify-content: space-around;
-            width: 90%;
-            max-width: 400px;
-            background: var(--panel);
-            padding: 10px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            box-shadow: inset 0 0 10px #000;
-        }
-        .status-item {
-            font-size: 14px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .status-val {
-            color: var(--primary);
-            font-weight: bold;
-            margin-top: 5px;
-        }
-        .grid-container {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            margin-bottom: 30px;
-        }
-        .btn {
-            background-color: var(--btn-bg);
-            border: 2px solid #555;
-            color: white;
-            border-radius: 12px;
-            padding: 20px;
-            font-size: 24px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            user-select: none;
-            -webkit-user-select: none;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            text-transform: uppercase;
-            font-weight: bold;
-        }
-        .btn:active, .btn.active {
-            background-color: var(--btn-active);
-            border-color: var(--primary);
-            color: black;
-            box-shadow: 0 0 20px var(--primary);
-            transform: scale(0.95);
-        }
-        .btn-up { grid-column: 2; grid-row: 1; border-top-left-radius: 20px; border-top-right-radius: 20px; }
-        .btn-down { grid-column: 2; grid-row: 3; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; }
-        .btn-left { grid-column: 1; grid-row: 2; border-top-left-radius: 20px; border-bottom-left-radius: 20px; }
-        .btn-right { grid-column: 3; grid-row: 2; border-top-right-radius: 20px; border-bottom-right-radius: 20px; }
-        .btn-stop { grid-column: 2; grid-row: 2; background-color: #522; border-color: #f55; }
-        .btn-stop:active, .btn-stop.active { background-color: #f55; box-shadow: 0 0 20px #f55; }
-        
-        .action-btns {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-            justify-content: center;
-            width: 90%;
-            max-width: 400px;
-        }
-        .action-btn {
-            flex: 1;
-            min-width: 80px;
-            padding: 12px;
-            background: #2a2a2a;
-            border: 1px solid #444;
-            border-radius: 8px;
-            color: #ccc;
-            font-size: 14px;
-            text-transform: uppercase;
-            font-weight: bold;
-        }
-        .action-btn:active {
-            background: var(--primary);
-            color: #000;
-        }
-    </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Spider Robot Control</title>
+  <style>
+    :root {
+      --bg1: #0b1020;
+      --bg2: #111a33;
+      --panel: rgba(15, 23, 42, 0.88);
+      --accent: #22c55e;
+      --accent2: #38bdf8;
+      --text: #e5eefb;
+      --muted: #94a3b8;
+      --danger: #fb7185;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, rgba(56, 189, 248, 0.18), transparent 34%),
+        radial-gradient(circle at bottom right, rgba(34, 197, 94, 0.18), transparent 30%),
+        linear-gradient(160deg, var(--bg1), var(--bg2));
+      display: grid;
+      place-items: center;
+      padding: 18px;
+    }
+    .card {
+      width: min(480px, 100%);
+      background: var(--panel);
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-radius: 22px;
+      padding: 20px;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(12px);
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 1.7rem;
+      letter-spacing: 0.02em;
+    }
+    p {
+      margin: 0 0 18px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .status {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 16px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(148, 163, 184, 0.14);
+      font-size: 0.95rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    button {
+      border: 0;
+      border-radius: 16px;
+      padding: 18px 12px;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #08111f;
+      background: linear-gradient(180deg, #e2e8f0, #cbd5e1);
+      cursor: pointer;
+      transition: transform 0.12s ease, filter 0.12s ease, opacity 0.12s ease;
+      min-height: 62px;
+    }
+    button:active { transform: scale(0.97); filter: brightness(0.96); }
+    .forward { background: linear-gradient(180deg, #86efac, #22c55e); }
+    .back { background: linear-gradient(180deg, #fda4af, #fb7185); }
+    .left, .right { background: linear-gradient(180deg, #bae6fd, #38bdf8); }
+    .gesture { background: linear-gradient(180deg, #fde68a, #f59e0b); }
+    .led-on { background: linear-gradient(180deg, #bbf7d0, #4ade80); }
+    .led-off { background: linear-gradient(180deg, #e2e8f0, #94a3b8); }
+    .led-blink { background: linear-gradient(180deg, #c4b5fd, #8b5cf6); }
+    .wide { grid-column: span 3; }
+    .hint {
+      margin-top: 16px;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+    .pulse {
+      color: var(--accent);
+      font-weight: 700;
+    }
+  </style>
 </head>
 <body>
-    <div class="header">
-        <h1>SpiderBot OS v2.0</h1>
+  <div class="card">
+    <h1>Spider Robot Control</h1>
+    <p>Use the web buttons to send the same control letters as the Bluetooth version.</p>
+    <div class="status">
+      <div>Last command: <span class="pulse" id="cmd">none</span></div>
+      <div id="msg">Ready</div>
     </div>
-    
-    <div class="status-panel">
-        <div class="status-item">
-            <span>LINK</span>
-            <span class="status-val">ACTIVE</span>
-        </div>
-        <div class="status-item">
-            <span>MODE</span>
-            <span class="status-val" id="mode-val">IDLE</span>
-        </div>
-        <div class="status-item">
-            <span>BATT</span>
-            <span class="status-val">98%</span>
-        </div>
+    <div class="grid">
+      <div></div>
+      <button class="forward" onclick="sendCmd('F')">Forward</button>
+      <div></div>
+      <button class="left" onclick="sendCmd('L')">Left</button>
+      <button class="back" onclick="sendCmd('B')">Back</button>
+      <button class="right" onclick="sendCmd('R')">Right</button>
+      <button class="gesture wide" onclick="sendCmd('U')">Hand Shake</button>
+      <button class="gesture wide" onclick="sendCmd('W')">Hand Wave</button>
+      <button class="gesture wide" onclick="sendCmd('V')">Body Dance</button>
+      <button class="led-on wide" onclick="sendCmd('O')">LED On</button>
+      <button class="led-off wide" onclick="sendCmd('X')">LED Off</button>
+      <button class="led-blink wide" onclick="sendCmd('K')">LED Blink</button>
     </div>
-
-    <div class="grid-container">
-        <div class="btn btn-up" onmousedown="sendCommand('F')" onmouseup="sendCommand('S')" ontouchstart="sendCommand('F'); event.preventDefault()" ontouchend="sendCommand('S'); event.preventDefault()">▲</div>
-        <div class="btn btn-left" onmousedown="sendCommand('L')" onmouseup="sendCommand('S')" ontouchstart="sendCommand('L'); event.preventDefault()" ontouchend="sendCommand('S'); event.preventDefault()">◀</div>
-        <div class="btn btn-stop" onclick="sendCommand('S')" ontouchstart="sendCommand('S'); event.preventDefault()">■</div>
-        <div class="btn btn-right" onmousedown="sendCommand('R')" onmouseup="sendCommand('S')" ontouchstart="sendCommand('R'); event.preventDefault()" ontouchend="sendCommand('S'); event.preventDefault()">▶</div>
-        <div class="btn btn-down" onmousedown="sendCommand('B')" onmouseup="sendCommand('S')" ontouchstart="sendCommand('B'); event.preventDefault()" ontouchend="sendCommand('S'); event.preventDefault()">▼</div>
-    </div>
-
-    <div class="action-btns">
-        <button class="action-btn" onclick="sendCommand('U')">STAND</button>
-        <button class="action-btn" onclick="sendCommand('X')">SIT</button>
-        <button class="action-btn" onclick="sendCommand('D')">DANCE</button>
-    </div>
-
-    <script>
-        function sendCommand(cmd) {
-            fetch('/cmd?c=' + cmd);
-            const modes = {'F':'FORWARD', 'B':'BACKWARD', 'L':'LEFT', 'R':'RIGHT', 'S':'IDLE', 'U':'STAND', 'X':'SIT', 'D':'DANCE'};
-            if(modes[cmd]) document.getElementById('mode-val').innerText = modes[cmd];
-        }
-
-        // Keyboard support
-        const keyMap = {'ArrowUp':'F', 'ArrowDown':'B', 'ArrowLeft':'L', 'ArrowRight':'R', 'Space':'S'};
-        let activeKey = null;
-
-        window.addEventListener('keydown', (e) => {
-            const code = e.code === 'Space' ? 'Space' : e.key;
-            if (keyMap[code] && activeKey !== code) {
-                activeKey = code;
-                sendCommand(keyMap[code]);
-                // Visual feedback could be added here
-            }
-        });
-
-        window.addEventListener('keyup', (e) => {
-            const code = e.code === 'Space' ? 'Space' : e.key;
-            if (keyMap[code] && activeKey === code) {
-                activeKey = null;
-                // Only send stop if it's a movement key
-                if (code !== 'Space') {
-                    sendCommand('S');
-                }
-            }
-        });
-    </script>
+    <div class="hint">Wi-Fi network: <span class="pulse">SpiderRobot</span> | Password: <span class="pulse">12345678</span></div>
+  </div>
+  <script>
+    async function sendCmd(cmd) {
+      const msg = document.getElementById('msg');
+      const last = document.getElementById('cmd');
+      try {
+        msg.textContent = 'Sending ' + cmd + '...';
+        const res = await fetch('/cmd?go=' + encodeURIComponent(cmd));
+        const text = await res.text();
+        last.textContent = cmd;
+        msg.textContent = text;
+      } catch (e) {
+        msg.textContent = 'Connection error';
+      }
+    }
+  </script>
 </body>
 </html>
-)=====";
+)rawliteral";
+
+void sendRobotCommand(const char command) {
+  Serial2.write(command);
+}
 
 void handleRoot() {
-  server.send(200, "text/html", htmlPage);
+  server.send_P(200, "text/html", indexHtml);
 }
 
 void handleCommand() {
-  if (server.hasArg("c")) {
-    String cmd = server.arg("c");
-    Serial2.print(cmd); // Send to Arduino Nano via UART
-    Serial.println("Sent: " + cmd);
-    server.send(200, "text/plain", "OK");
-  } else {
-    server.send(400, "text/plain", "Bad Request");
+  if (!server.hasArg("go") || server.arg("go").length() == 0) {
+    server.send(400, "text/plain", "Missing command");
+    return;
+  }
+
+  const char command = server.arg("go")[0];
+  switch (command) {
+    case 'F':
+    case 'B':
+    case 'L':
+    case 'R':
+    case 'U':
+    case 'W':
+    case 'V':
+    case 'O':
+    case 'X':
+    case 'K':
+      sendRobotCommand(command);
+      server.send(200, "text/plain", String("Sent ") + command);
+      break;
+    default:
+      server.send(400, "text/plain", "Invalid command");
+      break;
   }
 }
 
-void setup() {
-  Serial.begin(115200); // For debugging
-  
-  // Set up Serial2 for Arduino Nano (RX=16, TX=17)
-  Serial2.begin(9600, SERIAL_8N1, RXD2, TXD2);
+void handleNotFound() {
+  server.send(404, "text/plain", "Not found");
+}
 
-  WiFi.mode(WIFI_AP_STA);
-  WiFi.softAP(ssid, password);
-  
-  Serial.println("AP IP address: ");
-  Serial.println(WiFi.softAPIP());
+void setup() {
+  Serial.begin(115200);
+  Serial2.begin(ROBOT_BAUD, SERIAL_8N1, ESP32_RX_PIN, ESP32_TX_PIN);
+
+  WiFi.mode(WIFI_AP);
+  WiFi.setSleep(false);
+  esp_wifi_set_ps(WIFI_PS_NONE);
+  WiFi.softAPConfig(apIP, apGateway, apSubnet);
+  WiFi.softAP(apSsid, apPassword);
 
   server.on("/", handleRoot);
   server.on("/cmd", handleCommand);
+  server.onNotFound(handleNotFound);
   server.begin();
-  
-  Serial.println("Web server started");
+
+  Serial.println();
+  Serial.println("ESP32 Spider Robot Web Controller started");
+  Serial.print("Reset reason: ");
+  Serial.println((int)esp_reset_reason());
+  Serial.print("AP IP: ");
+  Serial.println(WiFi.softAPIP());
 }
 
 void loop() {
   server.handleClient();
+  delay(2);
 }
