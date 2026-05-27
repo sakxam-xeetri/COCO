@@ -46,129 +46,221 @@ const char indexHtml[] PROGMEM = R"rawliteral(
   <title>Spider Robot Control</title>
   <style>
     :root {
-      --bg1: #0b1020;
-      --bg2: #111a33;
-      --panel: rgba(15, 23, 42, 0.88);
-      --accent: #22c55e;
+      --bg1: #08111f;
+      --bg2: #15213c;
+      --panel: rgba(9, 15, 28, 0.86);
+      --panel-strong: rgba(15, 23, 42, 0.94);
+      --accent: #4ade80;
       --accent2: #38bdf8;
-      --text: #e5eefb;
-      --muted: #94a3b8;
-      --danger: #fb7185;
+      --accent3: #fb7185;
+      --text: #eff6ff;
+      --muted: #9fb0c9;
+      --border: rgba(148, 163, 184, 0.18);
     }
     * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
     body {
       margin: 0;
       min-height: 100vh;
-      font-family: Arial, Helvetica, sans-serif;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
       color: var(--text);
       background:
-        radial-gradient(circle at top, rgba(56, 189, 248, 0.18), transparent 34%),
-        radial-gradient(circle at bottom right, rgba(34, 197, 94, 0.18), transparent 30%),
+        radial-gradient(circle at top, rgba(56, 189, 248, 0.16), transparent 30%),
+        radial-gradient(circle at 15% 80%, rgba(74, 222, 128, 0.16), transparent 25%),
+        radial-gradient(circle at 85% 15%, rgba(251, 113, 133, 0.13), transparent 22%),
         linear-gradient(160deg, var(--bg1), var(--bg2));
       display: grid;
       place-items: center;
-      padding: 18px;
+      padding: 16px;
     }
     .card {
-      width: min(480px, 100%);
+      width: min(620px, 100%);
       background: var(--panel);
-      border: 1px solid rgba(148, 163, 184, 0.22);
-      border-radius: 22px;
+      border: 1px solid var(--border);
+      border-radius: 26px;
       padding: 20px;
-      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
-      backdrop-filter: blur(12px);
+      box-shadow: 0 30px 90px rgba(0, 0, 0, 0.42);
+      backdrop-filter: blur(14px);
+      overflow: hidden;
+      position: relative;
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.08), transparent 30%, transparent 70%, rgba(255,255,255,0.04));
+      pointer-events: none;
+    }
+    .hero {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+      margin-bottom: 18px;
     }
     h1 {
       margin: 0 0 8px;
-      font-size: 1.7rem;
-      letter-spacing: 0.02em;
+      font-size: clamp(1.8rem, 4vw, 2.45rem);
+      letter-spacing: 0.01em;
+      line-height: 1.05;
     }
-    p {
-      margin: 0 0 18px;
+    .subtitle {
+      margin: 0;
       color: var(--muted);
       line-height: 1.5;
+      max-width: 32rem;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 0.9rem;
+      white-space: nowrap;
+      flex: 0 0 auto;
     }
     .status {
       display: flex;
       justify-content: space-between;
       gap: 12px;
       align-items: center;
-      margin-bottom: 16px;
-      padding: 12px 14px;
-      border-radius: 14px;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(148, 163, 184, 0.14);
+      margin-bottom: 18px;
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: var(--panel-strong);
+      border: 1px solid var(--border);
       font-size: 0.95rem;
+      position: relative;
+      z-index: 1;
     }
+    .status-label { color: var(--muted); }
     .grid {
+      position: relative;
+      z-index: 1;
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 12px;
     }
     button {
       border: 0;
-      border-radius: 16px;
-      padding: 18px 12px;
+      border-radius: 18px;
+      padding: 16px 12px;
       font-size: 1rem;
-      font-weight: 700;
-      color: #08111f;
+      font-weight: 800;
+      letter-spacing: 0.01em;
+      color: #07101d;
       background: linear-gradient(180deg, #e2e8f0, #cbd5e1);
       cursor: pointer;
-      transition: transform 0.12s ease, filter 0.12s ease, opacity 0.12s ease;
-      min-height: 62px;
+      transition: transform 0.14s ease, filter 0.14s ease, box-shadow 0.14s ease;
+      min-height: 64px;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
     }
-    button:active { transform: scale(0.97); filter: brightness(0.96); }
-    .forward { background: linear-gradient(180deg, #86efac, #22c55e); }
-    .back { background: linear-gradient(180deg, #fda4af, #fb7185); }
+    button:hover { transform: translateY(-1px); filter: brightness(1.02); }
+    button:active { transform: scale(0.97); filter: brightness(0.95); }
+    .forward {
+      background: linear-gradient(180deg, #bbf7d0, #22c55e);
+      font-size: 1.08rem;
+      min-height: 88px;
+    }
+    .back { background: linear-gradient(180deg, #fecdd3, #fb7185); }
     .left, .right { background: linear-gradient(180deg, #bae6fd, #38bdf8); }
     .gesture { background: linear-gradient(180deg, #fde68a, #f59e0b); }
-    .basic-pos { background: linear-gradient(180deg, #c4b5fd, #8b5cf6); }
-    .spider-pos { background: linear-gradient(180deg, #f9a8d4, #ec4899); }
+    .basic-pos { background: linear-gradient(180deg, #ddd6fe, #8b5cf6); color: #fff; }
+    .spider-pos { background: linear-gradient(180deg, #fbcfe8, #ec4899); color: #fff; }
     .led-on { background: linear-gradient(180deg, #bbf7d0, #4ade80); }
     .led-off { background: linear-gradient(180deg, #e2e8f0, #94a3b8); }
-    .led-blink { background: linear-gradient(180deg, #c4b5fd, #8b5cf6); }
+    .led-blink { background: linear-gradient(180deg, #c4b5fd, #8b5cf6); color: #fff; }
     .wide { grid-column: span 3; }
+    .nav-left, .nav-right { min-height: 72px; }
+    .nav-center {
+      min-height: 92px;
+      display: grid;
+      place-items: center;
+      box-shadow: 0 16px 30px rgba(34, 197, 94, 0.22);
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      color: var(--muted);
+      font-size: 0.8rem;
+      margin-bottom: 8px;
+    }
     .hint {
-      margin-top: 16px;
+      margin-top: 18px;
       font-size: 0.9rem;
       color: var(--muted);
+      position: relative;
+      z-index: 1;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
     }
     .pulse {
       color: var(--accent);
       font-weight: 700;
     }
+    .footer-note {
+      color: var(--muted);
+    }
+    @media (max-width: 560px) {
+      .card { padding: 16px; border-radius: 22px; }
+      .hero { flex-direction: column; }
+      .badge { align-self: flex-start; }
+      .grid { gap: 10px; }
+      button { min-height: 60px; padding: 14px 10px; }
+      .forward { min-height: 82px; }
+      .hint { flex-direction: column; }
+    }
   </style>
 </head>
 <body>
   <div class="card">
-    <h1>Spider Robot Control</h1>
-    <p>Press and hold direction buttons to move. Release to stop.</p>
+    <div class="hero">
+      <div>
+        <div class="pill">Live Web Control</div>
+        <h1>Spider Robot Control</h1>
+        <p class="subtitle">Press and hold Forward to walk continuously. Release to stop instantly. Use the pose buttons for stance control.</p>
+      </div>
+      <div class="badge">Wi-Fi AP: <span class="pulse">SpiderRobot</span></div>
+    </div>
     <div class="status">
-      <div>Last command: <span class="pulse" id="cmd">none</span></div>
+      <div><span class="status-label">Last command</span> <span class="pulse" id="cmd">none</span></div>
       <div id="msg">Ready</div>
     </div>
     <div class="grid">
       <div></div>
-      <button class="forward hold" data-cmd="F">Forward</button>
+      <button class="forward hold nav-center" data-cmd="F">Forward<br><span class="pill">Hold to move</span></button>
       <div></div>
-      <button class="left hold" data-cmd="L">Left</button>
+      <button class="left hold nav-left" data-cmd="L">Left</button>
       <button class="back hold" data-cmd="B">Back</button>
-      <button class="right hold" data-cmd="R">Right</button>
+      <button class="right hold nav-right" data-cmd="R">Right</button>
+      <button class="basic-pos wide" onclick="sendCmd('P')">Basic Position</button>
+      <button class="spider-pos wide" onclick="sendCmd('Q')">Spider Position</button>
       <button class="gesture wide" onclick="sendCmd('U')">Hand Shake</button>
       <button class="gesture wide" onclick="sendCmd('W')">Hand Wave</button>
       <button class="gesture wide" onclick="sendCmd('V')">Body Dance</button>
-      <button class="basic-pos wide" onclick="sendCmd('P')">Basic Position</button>
-      <button class="spider-pos wide" onclick="sendCmd('Q')">Spider Position</button>
       <button class="led-on wide" onclick="sendCmd('O')">LED On</button>
       <button class="led-off wide" onclick="sendCmd('X')">LED Off</button>
       <button class="led-blink wide" onclick="sendCmd('K')">LED Blink</button>
     </div>
-    <div class="hint">Wi-Fi network: <span class="pulse">SpiderRobot</span> | Password: <span class="pulse">12345678</span></div>
+    <div class="hint">
+      <div>Wi-Fi password: <span class="pulse">12345678</span></div>
+      <div class="footer-note">Release any direction button to send stop.</div>
+    </div>
   </div>
   <script>
-    const HOLD_SEND_INTERVAL_MS = 120;
     let activeMotionCmd = '';
-    let holdTimer = null;
 
     async function sendCmd(cmd, fireAndForget = false) {
       const msg = document.getElementById('msg');
@@ -179,8 +271,7 @@ const char indexHtml[] PROGMEM = R"rawliteral(
         }
 
         const res = await fetch('/cmd?go=' + encodeURIComponent(cmd), {
-          cache: 'no-store',
-          keepalive: true
+          cache: 'no-store'
         });
 
         const text = await res.text();
@@ -206,11 +297,6 @@ const char indexHtml[] PROGMEM = R"rawliteral(
       document.getElementById('cmd').textContent = cmd;
 
       sendCmd(cmd, true);
-      holdTimer = setInterval(() => {
-        if (activeMotionCmd === cmd) {
-          sendCmd(cmd, true);
-        }
-      }, HOLD_SEND_INTERVAL_MS);
     }
 
     function stopHold(silent) {
@@ -218,8 +304,6 @@ const char indexHtml[] PROGMEM = R"rawliteral(
         return;
       }
 
-      clearInterval(holdTimer);
-      holdTimer = null;
       activeMotionCmd = '';
       sendCmd('S', true);
 
