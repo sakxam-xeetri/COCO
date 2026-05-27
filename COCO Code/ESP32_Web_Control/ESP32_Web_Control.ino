@@ -12,6 +12,7 @@
 //   B = back
 //   L = left
 //   R = right
+//   S = stop
 //   U = hand shake
 //   W = hand wave
 //   V = body dance
@@ -137,18 +138,18 @@ const char indexHtml[] PROGMEM = R"rawliteral(
 <body>
   <div class="card">
     <h1>Spider Robot Control</h1>
-    <p>Use the web buttons to send the same control letters as the Bluetooth version.</p>
+    <p>Press and hold direction buttons to move. Release to stop.</p>
     <div class="status">
       <div>Last command: <span class="pulse" id="cmd">none</span></div>
       <div id="msg">Ready</div>
     </div>
     <div class="grid">
       <div></div>
-      <button class="forward" onclick="sendCmd('F')">Forward</button>
+      <button class="forward hold" data-cmd="F">Forward</button>
       <div></div>
-      <button class="left" onclick="sendCmd('L')">Left</button>
-      <button class="back" onclick="sendCmd('B')">Back</button>
-      <button class="right" onclick="sendCmd('R')">Right</button>
+      <button class="left hold" data-cmd="L">Left</button>
+      <button class="back hold" data-cmd="B">Back</button>
+      <button class="right hold" data-cmd="R">Right</button>
       <button class="gesture wide" onclick="sendCmd('U')">Hand Shake</button>
       <button class="gesture wide" onclick="sendCmd('W')">Hand Wave</button>
       <button class="gesture wide" onclick="sendCmd('V')">Body Dance</button>
@@ -159,19 +160,91 @@ const char indexHtml[] PROGMEM = R"rawliteral(
     <div class="hint">Wi-Fi network: <span class="pulse">SpiderRobot</span> | Password: <span class="pulse">12345678</span></div>
   </div>
   <script>
-    async function sendCmd(cmd) {
+    const HOLD_SEND_INTERVAL_MS = 120;
+    let activeMotionCmd = '';
+    let holdTimer = null;
+
+    async function sendCmd(cmd, fireAndForget = false) {
       const msg = document.getElementById('msg');
       const last = document.getElementById('cmd');
       try {
-        msg.textContent = 'Sending ' + cmd + '...';
-        const res = await fetch('/cmd?go=' + encodeURIComponent(cmd));
+        if (!fireAndForget) {
+          msg.textContent = 'Sending ' + cmd + '...';
+        }
+
+        const res = await fetch('/cmd?go=' + encodeURIComponent(cmd), {
+          cache: 'no-store',
+          keepalive: true
+        });
+
         const text = await res.text();
         last.textContent = cmd;
-        msg.textContent = text;
+        if (!fireAndForget) {
+          msg.textContent = text;
+        }
       } catch (e) {
-        msg.textContent = 'Connection error';
+        if (!fireAndForget) {
+          msg.textContent = 'Connection error';
+        }
       }
     }
+
+    function startHold(cmd) {
+      if (activeMotionCmd === cmd) {
+        return;
+      }
+
+      stopHold(true);
+      activeMotionCmd = cmd;
+      document.getElementById('msg').textContent = 'Holding ' + cmd;
+      document.getElementById('cmd').textContent = cmd;
+
+      sendCmd(cmd, true);
+      holdTimer = setInterval(() => {
+        if (activeMotionCmd === cmd) {
+          sendCmd(cmd, true);
+        }
+      }, HOLD_SEND_INTERVAL_MS);
+    }
+
+    function stopHold(silent) {
+      if (!activeMotionCmd) {
+        return;
+      }
+
+      clearInterval(holdTimer);
+      holdTimer = null;
+      activeMotionCmd = '';
+      sendCmd('S', true);
+
+      if (!silent) {
+        document.getElementById('cmd').textContent = 'S';
+        document.getElementById('msg').textContent = 'Stopped';
+      }
+    }
+
+    for (const btn of document.querySelectorAll('button.hold')) {
+      const cmd = btn.dataset.cmd;
+      btn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        btn.setPointerCapture(e.pointerId);
+        startHold(cmd);
+      });
+      btn.addEventListener('pointerup', () => stopHold(false));
+      btn.addEventListener('pointerleave', () => stopHold(false));
+      btn.addEventListener('pointercancel', () => stopHold(false));
+      btn.addEventListener('lostpointercapture', () => stopHold(false));
+      btn.addEventListener('contextmenu', (e) => e.preventDefault());
+      btn.style.touchAction = 'none';
+    }
+
+    window.addEventListener('blur', () => stopHold(true));
+    window.addEventListener('pagehide', () => stopHold(true));
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState !== 'visible') {
+        stopHold(true);
+      }
+    });
   </script>
 </body>
 </html>
@@ -197,6 +270,7 @@ void handleCommand() {
     case 'B':
     case 'L':
     case 'R':
+    case 'S':
     case 'U':
     case 'W':
     case 'V':

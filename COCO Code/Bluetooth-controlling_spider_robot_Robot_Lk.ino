@@ -155,7 +155,7 @@ void loop() {
       cierra();
     delay (150);
     happy();
-        step_forward(2);
+        step_forward(1);
         cmd = ' ';
         break;
       case 'B':
@@ -163,7 +163,7 @@ void loop() {
         cierra();
     delay (150);
     triste();
-        step_back(2);
+        step_back(1);
         cmd = ' ';
         break;
       case 'L':
@@ -172,7 +172,7 @@ void loop() {
     delay (150);
     enfado1();
     
-        turn_left(2);
+        turn_left(1);
         cmd = ' ';
         break;
       case 'R':
@@ -181,10 +181,13 @@ void loop() {
     delay (150);
     enfado();
     
-        turn_right(2);
+        turn_right(1);
         cmd = ' ';
         break;
-    
+      case 'S':
+        // Stop means: do not queue more motion.
+        Serial.println("Stop");
+        cmd = ' ';
         break;
       case 'U':
         Serial.println("Hand shake");
