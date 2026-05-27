@@ -58,6 +58,12 @@ const char indexHtml[] PROGMEM = R"rawliteral(
       --border: rgba(148, 163, 184, 0.18);
     }
     * { box-sizing: border-box; }
+    html, body, button {
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
     html, body { min-height: 100%; }
     body {
       margin: 0;
@@ -72,6 +78,7 @@ const char indexHtml[] PROGMEM = R"rawliteral(
       display: grid;
       place-items: center;
       padding: 16px;
+      touch-action: manipulation;
     }
     .card {
       width: min(620px, 100%);
@@ -160,6 +167,8 @@ const char indexHtml[] PROGMEM = R"rawliteral(
       transition: transform 0.14s ease, filter 0.14s ease, box-shadow 0.14s ease;
       min-height: 64px;
       box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+      -webkit-tap-highlight-color: transparent;
+      touch-action: none;
     }
     button:hover { transform: translateY(-1px); filter: brightness(1.02); }
     button:active { transform: scale(0.97); filter: brightness(0.95); }
@@ -317,6 +326,7 @@ const char indexHtml[] PROGMEM = R"rawliteral(
       const cmd = btn.dataset.cmd;
       btn.addEventListener('pointerdown', (e) => {
         e.preventDefault();
+        e.stopPropagation();
         btn.setPointerCapture(e.pointerId);
         startHold(cmd);
       });
@@ -325,8 +335,9 @@ const char indexHtml[] PROGMEM = R"rawliteral(
       btn.addEventListener('pointercancel', () => stopHold(false));
       btn.addEventListener('lostpointercapture', () => stopHold(false));
       btn.addEventListener('contextmenu', (e) => e.preventDefault());
-      btn.style.touchAction = 'none';
     }
+
+    document.addEventListener('contextmenu', (e) => e.preventDefault());
 
     window.addEventListener('blur', () => stopHold(true));
     window.addEventListener('pagehide', () => stopHold(true));
