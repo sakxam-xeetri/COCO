@@ -88,6 +88,54 @@ void spider_position()
   wait_all_reach();
 }
 
+void forward_until_stop()
+{
+  while (!stop_requested)
+  {
+    step_forward(1);
+    if (stop_requested)
+    {
+      break;
+    }
+  }
+}
+
+void backward_until_stop()
+{
+  while (!stop_requested)
+  {
+    step_back(1);
+    if (stop_requested)
+    {
+      break;
+    }
+  }
+}
+
+void left_until_stop()
+{
+  while (!stop_requested)
+  {
+    turn_left(1);
+    if (stop_requested)
+    {
+      break;
+    }
+  }
+}
+
+void right_until_stop()
+{
+  while (!stop_requested)
+  {
+    turn_right(1);
+    if (stop_requested)
+    {
+      break;
+    }
+  }
+}
+
 bool poll_stop_command()
 {
   while (Serial.available())
@@ -216,22 +264,26 @@ void loop() {
   {
   case 'F':
         Serial.println("Step forward");
-        step_forward(1);
+        basic_position();
+      forward_until_stop();
         cmd = ' ';
         break;
       case 'B':
         Serial.println("Step back");
-        step_back(1);
+        basic_position();
+            backward_until_stop();
         cmd = ' ';
         break;
       case 'L':
         Serial.println("Turn left");
-        turn_left(1);
+        basic_position();
+            left_until_stop();
         cmd = ' ';
         break;
       case 'R':
         Serial.println("Turn right");
-        turn_right(1);
+        basic_position();
+            right_until_stop();
         cmd = ' ';
         break;
       case 'S':
