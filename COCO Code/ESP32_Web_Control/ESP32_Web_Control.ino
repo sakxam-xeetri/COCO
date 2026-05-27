@@ -13,6 +13,8 @@
 //   L = left
 //   R = right
 //   S = stop
+//   P = basic position
+//   Q = spider position
 //   U = hand shake
 //   W = hand wave
 //   V = body dance
@@ -120,6 +122,8 @@ const char indexHtml[] PROGMEM = R"rawliteral(
     .back { background: linear-gradient(180deg, #fda4af, #fb7185); }
     .left, .right { background: linear-gradient(180deg, #bae6fd, #38bdf8); }
     .gesture { background: linear-gradient(180deg, #fde68a, #f59e0b); }
+    .basic-pos { background: linear-gradient(180deg, #c4b5fd, #8b5cf6); }
+    .spider-pos { background: linear-gradient(180deg, #f9a8d4, #ec4899); }
     .led-on { background: linear-gradient(180deg, #bbf7d0, #4ade80); }
     .led-off { background: linear-gradient(180deg, #e2e8f0, #94a3b8); }
     .led-blink { background: linear-gradient(180deg, #c4b5fd, #8b5cf6); }
@@ -153,6 +157,8 @@ const char indexHtml[] PROGMEM = R"rawliteral(
       <button class="gesture wide" onclick="sendCmd('U')">Hand Shake</button>
       <button class="gesture wide" onclick="sendCmd('W')">Hand Wave</button>
       <button class="gesture wide" onclick="sendCmd('V')">Body Dance</button>
+      <button class="basic-pos wide" onclick="sendCmd('P')">Basic Position</button>
+      <button class="spider-pos wide" onclick="sendCmd('Q')">Spider Position</button>
       <button class="led-on wide" onclick="sendCmd('O')">LED On</button>
       <button class="led-off wide" onclick="sendCmd('X')">LED Off</button>
       <button class="led-blink wide" onclick="sendCmd('K')">LED Blink</button>
@@ -271,6 +277,8 @@ void handleCommand() {
     case 'L':
     case 'R':
     case 'S':
+    case 'P':
+    case 'Q':
     case 'U':
     case 'W':
     case 'V':
