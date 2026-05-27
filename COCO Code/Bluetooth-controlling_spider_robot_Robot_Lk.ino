@@ -55,9 +55,58 @@ const float turn_y0 = temp_b * sin(temp_alpha) - turn_y1 - length_side;
 
 int n_step = 2;
 int s_flag=1;
+volatile bool stop_requested = false;
 
 const int LED_POS_PIN = A0;
 const int LED_NEG_PIN = A1;
+
+void halt_motion()
+{
+  for (int i = 0; i < 4; i++)
+  {
+    for (int j = 0; j < 3; j++)
+    {
+      site_expect[i][j] = site_now[i][j];
+      temp_speed[i][j] = 0;
+    }
+  }
+}
+
+void basic_position()
+{
+  move_speed = stand_seat_speed;
+  stand();
+}
+
+void spider_position()
+{
+  move_speed = stand_seat_speed;
+  set_site(0, x_default, y_default - 20, z_default - 20);
+  set_site(1, x_default, y_default + 20, z_default - 20);
+  set_site(2, x_default, y_default - 20, z_default - 20);
+  set_site(3, x_default, y_default + 20, z_default - 20);
+  wait_all_reach();
+}
+
+bool poll_stop_command()
+{
+  while (Serial.available())
+  {
+    int incoming = Serial.read();
+    if (incoming == 'S')
+    {
+      if (!stop_requested)
+      {
+        Serial.println("Stop interrupt");
+      }
+      stop_requested = true;
+      halt_motion();
+      return true;
+    }
+  }
+
+  return stop_requested;
+}
 
 void led_off()
 {
@@ -145,48 +194,61 @@ void setup()
 void loop() {
  // put your main code here, to run repeatedly:
   if (Serial.available()) {
-    int cmd = Serial.read();
+    int cmd = -1;
+    while (Serial.available())
+    {
+      cmd = Serial.read();
+    }
+
+    if (cmd < 0)
+    {
+      return;
+    }
+
+    if (cmd != 'S')
+    {
+      stop_requested = false;
+    }
+
     //Serial.println(cmd);
     //Serial.write(cmd);
     switch (cmd)
   {
   case 'F':
         Serial.println("Step forward");
-      cierra();
-    delay (150);
-    happy();
         step_forward(1);
         cmd = ' ';
         break;
       case 'B':
         Serial.println("Step back");
-        cierra();
-    delay (150);
-    triste();
         step_back(1);
         cmd = ' ';
         break;
       case 'L':
         Serial.println("Turn left");
-         cierra();
-    delay (150);
-    enfado1();
-    
         turn_left(1);
         cmd = ' ';
         break;
       case 'R':
         Serial.println("Turn right");
-         cierra();
-    delay (150);
-    enfado();
-    
         turn_right(1);
         cmd = ' ';
         break;
       case 'S':
-        // Stop means: do not queue more motion.
+        // Stop means: interrupt the current gait immediately.
+        stop_requested = true;
+        halt_motion();
         Serial.println("Stop");
+        cmd = ' ';
+        break;
+      case 'P':
+        Serial.println("Basic position");
+        basic_position();
+        cmd = ' ';
+        break;
+      case 'Q':
+        Serial.println("Spider position");
+        spider_position();
         cmd = ' ';
         break;
       case 'U':
@@ -777,6 +839,11 @@ void servo_service(void)
    ---------------------------------------------------------------------------*/
 void set_site(int leg, float x, float y, float z)
 {
+  if (stop_requested)
+  {
+    return;
+  }
+
   float length_x = 0, length_y = 0, length_z = 0;
 
   if (x != KEEP)
@@ -807,10 +874,17 @@ void set_site(int leg, float x, float y, float z)
 void wait_reach(int leg)
 {
   while (1)
+  {
+    if (poll_stop_command())
+    {
+      return;
+    }
+
     if (site_now[leg][0] == site_expect[leg][0])
       if (site_now[leg][1] == site_expect[leg][1])
         if (site_now[leg][2] == site_expect[leg][2])
           break;
+  }
 }
 
 /*
@@ -820,7 +894,13 @@ void wait_reach(int leg)
 void wait_all_reach(void)
 {
   for (int i = 0; i < 4; i++)
+  {
     wait_reach(i);
+    if (stop_requested)
+    {
+      return;
+    }
+  }
 }
 
 /*
