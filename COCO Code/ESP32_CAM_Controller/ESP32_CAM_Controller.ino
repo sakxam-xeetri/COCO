@@ -11,8 +11,8 @@
 // UART.
 //
 // Suggested ESP32-CAM wiring for AI Thinker boards:
-//   GPIO14 -> Robot RX
-//   GPIO13 <- Robot TX (optional, only if you want replies)
+//   U0T / GPIO1 -> Robot RX
+//   U0R / GPIO3 <- Robot TX (optional, only if you want replies)
 //   GND    -> Robot GND
 //
 // Commands:
@@ -34,10 +34,6 @@
 const char* apSsid = "SpiderRobot";
 const char* apPassword = "12345678";
 
-// ESP32-CAM UART pins.
-// Adjust these if your board or wiring uses different free GPIOs.
-static const int ROBOT_RX_PIN = 13;
-static const int ROBOT_TX_PIN = 14;
 static const uint32_t ROBOT_BAUD = 9600;
 
 IPAddress apIP(192, 168, 4, 1);
@@ -357,7 +353,7 @@ const char indexHtml[] PROGMEM = R"rawliteral(
 )rawliteral";
 
 void sendRobotCommand(const char command) {
-  Serial1.write(command);
+  Serial.write(command);
 }
 
 void handleRoot() {
@@ -399,8 +395,7 @@ void handleNotFound() {
 }
 
 void setup() {
-  Serial.begin(115200);
-  Serial1.begin(ROBOT_BAUD, SERIAL_8N1, ROBOT_RX_PIN, ROBOT_TX_PIN);
+  Serial.begin(ROBOT_BAUD);
 
   WiFi.mode(WIFI_AP);
   WiFi.setSleep(false);
@@ -413,12 +408,7 @@ void setup() {
   server.onNotFound(handleNotFound);
   server.begin();
 
-  Serial.println();
-  Serial.println("ESP32-CAM Spider Robot Web Controller started");
-  Serial.print("Reset reason: ");
-  Serial.println((int)esp_reset_reason());
-  Serial.print("AP IP: ");
-  Serial.println(WiFi.softAPIP());
+  // Do not print debug logs here: Serial is shared with the robot link on U0T/U0R.
 }
 
 void loop() {
