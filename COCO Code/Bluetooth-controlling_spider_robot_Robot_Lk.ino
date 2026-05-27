@@ -264,25 +264,21 @@ void loop() {
   {
   case 'F':
         Serial.println("Step forward");
-        basic_position();
       forward_until_stop();
         cmd = ' ';
         break;
       case 'B':
         Serial.println("Step back");
-        basic_position();
             backward_until_stop();
         cmd = ' ';
         break;
       case 'L':
         Serial.println("Turn left");
-        basic_position();
             left_until_stop();
         cmd = ' ';
         break;
       case 'R':
         Serial.println("Turn right");
-        basic_position();
             right_until_stop();
         cmd = ' ';
         break;
