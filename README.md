@@ -1,162 +1,216 @@
-# COCO — The Quadruped Spider Robot 🕷️
+# COCO Spider Robot
 
-Welcome to **COCO**, an intelligent, 3-DOF (Degrees of Freedom) per leg quadruped spider robot built on the Arduino platform. This repository contains the complete firmware, electrical circuit diagrams, 3D printing design files, and instructions to build, calibrate, and program your own walking spider robot.
+COCO is a 3-in-1 Arduino spider robot project built around a quadruped chassis with 12 servo motors. It supports three core operating modes: repetitive motion, obstacle avoidance, and Bluetooth control. The repository also includes ESP32-based web controller sketches for users who want Wi-Fi control from a phone or browser.
 
----
+## Project Overview
 
-## 👤 Author & Credits
-- **Author:** Skashyam Bastakoti
-- **GitHub:** [@sakxam-xeetri](https://github.com/sakxam-xeetri)
+This project is designed for makers who want a realistic walking robot that is still approachable to build at home. The robot uses 3D-printed parts, a Nano-based controller setup, a servo expansion shield, and a small set of widely available modules. The firmware is organized so you can build the robot in stages: first align the servos, then test the basic motions, then move on to obstacle avoidance or Bluetooth control.
 
----
+### What the robot can do
 
-# COCO Spider Robot — ESP32-CAM Controller
+- Walk forward and backward using smooth, timed leg motion
+- Turn left and right in place
+- Stand, sit, wave, shake hands, and dance
+- Detect obstacles and change direction automatically
+- Respond to Bluetooth commands from an Android app
+- Optionally serve a mobile-friendly web interface through the ESP32 controller sketches
 
-Comprehensive, professional documentation for the COCO Spider Robot project. This README covers hardware, wiring, software structure, flashing, usage, troubleshooting, and contribution guidelines for the ESP32-CAM based web controller and the robot controller sketches contained in this repository.
+## Repository Contents
 
----
+- `COCO Code/basic postion.ino` - centers all servos at the neutral position for assembly
+- `COCO Code/repetitive motion.ino` - demo sketch for repeated walking and gesture sequences
+- `COCO Code/obstcal avoding.ino` - autonomous obstacle avoidance behavior
+- `COCO Code/Bluetooth-controlling_spider_robot_Robot_Lk.ino` - Bluetooth control sketch
+- `COCO Code/ESP32_CAM_Controller/ESP32_CAM_Controller.ino` - ESP32-CAM web controller
+- `COCO Code/ESP32_Web_Control/ESP32_Web_Control.ino` - ESP32 web controller variant
 
-## Table of Contents
-- **Overview** — Project summary and goals
-- **Highlights** — Key features and capabilities
-- **Hardware** — Parts, wiring and pinout
-- **Software** — Sketches, files and how they interact
-- **Web Controller** — AP, endpoints, UI behavior
-- **Flashing** — Arduino IDE and PlatformIO instructions
-- **Usage** — Operation examples and command reference
-- **Troubleshooting** — Common problems and fixes
-- **Contributing** — How to help and development notes
-- **License & Safety** — Legal and safety information
+## Required Components
 
----
+| Component | Description | Quantity |
+| --- | --- | ---: |
+| 3D-printed spider robot parts | Body, legs, connectors, and brackets | 1 set |
+| SG90 servo motors | 180-degree micro servos | 12 |
+| Arduino Nano board | Main controller for the 3-in-1 robot | 1 |
+| Nano IO Expansion Shield | Simplifies servo and module wiring | 1 |
+| 2-cell 18650 battery holder | Battery holder for portable power | 1 |
+| 18650 Li-ion batteries | 3.7V cells | 2 |
+| LM2596 buck converter | Step-down power module for servos | 1 |
+| HC-SR04 ultrasonic sensor | Obstacle detection | 1 |
+| HC-05 or HC-06 Bluetooth module | Wireless phone control | 1 |
+| Jumper wires | Female-to-female and general wiring | As needed |
+| M3 screws and nuts | Mechanical assembly hardware | 4 sets |
+| Glue gun and soldering tools | Assembly and wiring support | As needed |
 
-## Overview
-The COCO Spider Robot repository provides firmware and documentation to control a quadruped "spider" robot. It includes two main flows:
+## 3D Printed Parts
 
-- An ESP32-CAM web controller that creates a Wi‑Fi AP and serves a touch-optimized control UI.
-- A robot controller (Arduino-style) that accepts single-character serial commands and actuates the robot's motions.
+Use a layer height of 0.2 mm and around 15% infill for a good balance of strength and print time. If you do not have a printer, use a local or online printing service.
 
-This project is designed to be modular: use the ESP32 web controller to transmit commands over TTL serial to the robot controller, or use Bluetooth/serial sketches for local control.
+| STL File | Quantity |
+| --- | ---: |
+| `body_d.stl` | 1 |
+| `body_u.stl` | 1 |
+| `coxa_l.stl` | 2 |
+| `coxa_r.stl` | 2 |
+| `tibia_l.stl` | 2 |
+| `tibia_r.stl` | 2 |
+| `femur_1.stl` | 4 |
+| `s_hold.stl` | 8 |
 
-## Highlights
-- Low-latency command transport via single-byte serial commands
-- Mobile-first web UI with hold-to-move behavior and pose buttons
-- Minimal dependencies — camera module not required for controller use
-- Clear wiring and safe power recommendations for multi-servo installations
+## Assembly Flow
 
-## Hardware
-**Recommended board:** AI Thinker ESP32-CAM (or any ESP32 with accessible U0 pins)
+### 1. Print and prepare the parts
 
-**Essential components:**
-- ESP32-CAM board
-- Robot controller board (TTL serial input)
-- Jumper wires, 3.3V logic compatible
-- Power for servos (dedicated supply, min 3A recommended)
+Print all chassis and leg parts before installing servos. Clean any support material and test-fit each joint so the leg movement is smooth.
 
-**Suggested wiring:**
-- `ESP32 U0T / GPIO1 -> Robot RX` (ESP32 TX to robot RX)
-- `ESP32 U0R / GPIO3 <- Robot TX` (optional, for robot replies)
-- `GND -> Robot GND` (common ground)
+### 2. Assemble the legs
 
-**Serial settings:** `9600` baud (constant used in controller)
+Follow the reference assembly images and install the servo motors into the leg sections one by one. Keep the servo horns loose at first so you can calibrate them at the neutral position later.
 
-Safety note: never power servo banks from the ESP32's 5V pin. Use a separate regulated power rail and common ground.
+### 3. Align the servos
 
-## Software overview
-Key files in this repository:
-- `COCO Code/ESP32_CAM_Controller/ESP32_CAM_Controller.ino` — ESP32 AP and web UI that forwards commands over serial
-- `COCO Code/Bluetooth-controlling_spider_robot_Robot_Lk.ino` — robot-side command handling (example)
-- Other sketches in `COCO Code/` provide calibration, demo routines and autonomous behaviors
+Before attaching the horns permanently, upload the centering sketch and power the robot. All servos should move to the midpoint, usually 90 degrees. While the servos are still powered, place the horns so each leg is aligned correctly, then secure them with screws.
 
-ESP32 behavior summary:
-- Hosts AP `SpiderRobot` (password `12345678`) with static IP `192.168.4.1`
-- Serves the control UI at `/`
-- Accepts `GET /cmd?go=<CHAR>` and forwards `<CHAR>` to the robot via serial
+### 4. Wire the electronics
 
-## Web Controller (behavior and endpoints)
-- Access Point: **SpiderRobot** (password `12345678`)
-- Static IP: **192.168.4.1**
-- Endpoints:
-  - `GET /` — web UI
-  - `GET /cmd?go=<CHAR>` — forward single-character command to robot
+Use the Nano IO Expansion Shield to keep the wiring neat. Connect the servo power rail to the LM2596 output, and always share a common ground between the Arduino, servo power supply, Bluetooth module, and ultrasonic sensor.
 
-UI behavior summary:
-- Hold a direction button to repeatedly send a movement command (e.g., `F`), release to send `S` (stop)
-- Pose and gesture buttons send single-shot commands (e.g., `P`, `Q`, `U`)
-- LED cycle button toggles `X` -> `O` -> `K` modes (off / on / blink)
+## Wiring Notes
 
-## Command Reference
-Supported single-character commands forwarded to the robot:
-- `F` — forward
-- `B` — back
-- `L` — left
-- `R` — right
-- `S` — stop
-- `P` — basic position (pose)
-- `Q` — spider position (pose)
-- `U` — hand shake
-- `W` — hand wave
-- `V` — body dance
-- `O` — LED on
-- `X` — LED off
-- `K` — LED blink
+### Servo pin mapping
 
-These characters are sent verbatim with `Serial.write()` at 9600 baud.
+The firmware uses 12 servo channels arranged as four legs with three joints per leg:
 
-## Flashing & Build Instructions
-Arduino IDE (quick):
-1. Add ESP32 board URL to Preferences: `https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json`
-2. Install ESP32 boards via Board Manager and select `AI Thinker ESP32-CAM`.
-3. Open `ESP32_CAM_Controller.ino`, set the correct COM port, and upload.
-
-PlatformIO (VS Code):
-Add to `platformio.ini`:
-```ini
-[env:esp32-cam]
-platform = espressif32
-board = esp32cam
-framework = arduino
-monitor_speed = 9600
+```cpp
+const int servo_pin[4][3] = { {3, 4, 2}, {6, 7, 5}, {9, 8, 10}, {12, 11, 13} };
 ```
-Upload with `platformio run -t upload`.
 
-Notes:
-- Disconnect robot TX/RX from ESP32 while uploading to avoid serial collisions.
-- Avoid debug `Serial.print` output on U0 when it is used for robot communications.
+### Sensor and communication pins
 
-## Usage example
-1. Power both robot and ESP32-CAM (ensure common ground).
-2. Connect a phone to Wi‑Fi SSID `SpiderRobot` (password `12345678`).
-3. Browse to `http://192.168.4.1/` and use the touch UI.
-4. Optionally call commands programmatically:
-```bash
-curl "http://192.168.4.1/cmd?go=F"
-```
+- HC-SR04 trigger: A5
+- HC-SR04 echo: A4
+- OLED I2C SDA: A4
+- OLED I2C SCL: A5
+- Bluetooth module TX/RX: Arduino serial pins 0 and 1
+
+## Initial Servo Alignment
+
+The first calibration step is to center every servo before mounting the horn arms.
+
+1. Upload `basic postion.ino`.
+2. Power the servo rail so the servos can move and hold position.
+3. Wait until all servos settle at the center point.
+4. Mount the horns so the leg geometry matches the neutral pose shown in the assembly images.
+
+This step is important. If the horns are mounted off-center, later walking motions will be uneven or mirrored incorrectly.
+
+## Operating Modes
+
+### 1. Basic repetitive movement
+
+This sketch runs a demonstration sequence in a loop:
+
+1. Stand up
+2. Move forward for five steps
+3. Move backward for five steps
+4. Turn right
+5. Turn left
+6. Wave
+7. Shake hands
+8. Dance
+9. Sit down
+
+Use this mode when you want to verify the gait, servo alignment, and body balance.
+
+### 2. Obstacle avoiding mode
+
+This mode uses the HC-SR04 sensor to watch for obstacles ahead. When an obstacle is detected, the robot stops, steps back, and turns randomly left or right before continuing forward.
+
+Typical behavior:
+
+- Move forward while the path is clear
+- Reverse a few steps if an object is too close
+- Choose a new direction and continue
+
+### 3. Bluetooth control mode
+
+This mode lets you drive the robot with an Android Bluetooth app. It is best for manual control, testing, and demos.
+
+#### Bluetooth command reference
+
+| Command | Action |
+| --- | --- |
+| `F` | Walk forward |
+| `B` | Walk backward |
+| `L` | Turn left |
+| `R` | Turn right |
+| `U` | Stand up |
+| `X` | Sit down |
+| `D` | Body dance |
+| `S` | Stop or idle |
+
+## Arduino Code Structure
+
+The main firmware pattern used across the sketches is consistent:
+
+- `Servo.h` is used to drive the 12 servo motors
+- `FlexiTimer2` is used to refresh motion smoothly at a regular interval
+- `NewPing` is used for ultrasonic sensing in obstacle-avoidance mode
+- `Adafruit_SSD1306` and `Adafruit_GFX` are used for the OLED display in Bluetooth mode
+
+The motion logic is based on inverse kinematics, which converts target foot coordinates into servo angles. This makes the walking motion smoother and more realistic than simple on/off servo jumps.
+
+## Upload Instructions
+
+### Basic repetitive motion
+
+1. Open `repetitive motion.ino` in the Arduino IDE.
+2. Install the `FlexiTimer2` library using Library Manager or the ZIP file provided in the repository.
+3. Select the correct board and COM port.
+4. Upload the sketch and test the sequence.
+
+### Obstacle avoidance
+
+1. Open `obstcal avoding.ino`.
+2. Install `FlexiTimer2` and `NewPing`.
+3. Select the board and port.
+4. Upload the sketch and verify the sensor reading range.
+
+### Bluetooth control
+
+1. Open `Bluetooth-controlling_spider_robot_Robot_Lk.ino`.
+2. Install `FlexiTimer2`, `Adafruit SSD1306`, and `Adafruit GFX`.
+3. Pair the HC-05 or HC-06 module with your phone.
+4. Use a Bluetooth terminal or the provided Android app to send commands.
+
+## ESP32 Web Controller
+
+If you want Wi-Fi based control instead of Bluetooth, this repository also includes ESP32 controller sketches. These sketches create a Wi-Fi access point and expose a browser-based control page that can forward commands to the robot controller.
+
+That setup is useful when you want:
+
+- Phone control without pairing Bluetooth
+- A larger on-screen control pad
+- A cleaner browser interface for demos
 
 ## Troubleshooting
-- AP not visible: verify board is powered and sketch is running
-- Robot unresponsive: verify TX->RX wiring and common ground; confirm 9600 baud on robot
-- Upload problems: unplug external RX/TX during upload; select correct board in Arduino IDE
 
-## Contributing
-- Fork, open feature branches, and submit PRs to `main`.
-- Describe hardware changes and calibration steps in PR descriptions.
+- If the robot jitters or moves in the wrong direction, recheck servo horn alignment before changing the code.
+- If the robot resets when servos move, the power supply is not strong enough for the servo load.
+- If the ultrasonic sensor gives unstable readings, verify the trigger and echo pins and test at a short range first.
+- If Bluetooth commands do not work, confirm the app is connected to the correct module and the baud rate matches the sketch.
+- If upload fails, remove the Bluetooth module or disconnect serial wiring temporarily so it does not interfere with programming.
 
-## Safety & License
-- **Safety:** Keep body parts away from moving servos. Use a current-limited supply during tests. Securely fasten servo horns.
-- **License:** None specified in repository. Add a `LICENSE` file (e.g., MIT) if you want to grant reuse rights.
+## Safety Notes
 
----
+- Do not power all servos directly from the Arduino board.
+- Keep hands clear of the legs during testing.
+- Test the robot on a stand or raised surface during first power-up.
+- Use a regulated supply and verify polarity before connecting the battery pack.
 
-If you want: wiring diagrams (SVG/PNG), a PlatformIO CI example, or an illustrated troubleshooting flowchart, say which you'd like and I will add them.
+## Conclusion
 
-## 🔩 Chassis & 3D Printing
+COCO is a strong project for learning robotics, servo control, inverse kinematics, wireless communication, and embedded system integration. With the three operating modes, the robot can be used as a motion demo platform, an obstacle-avoiding robot, or a Bluetooth-controlled quadruped.
 
-You can find the physical structural parts in the root file:
-- **`3D-Print Files.zip`**: Unzip this archive to access the STL model files for printing the body plate, femur segments, coxa brackets, and tibia leg endpoints. We recommend printing with:
-  - **Infill:** 20% - 30% for high mechanical durability.
-  - **Material:** PLA (easy printing) or PETG (better structural strength).
-  - **Supports:** Required for coxa joint cavities.
+## Credits
 
----
-*COCO is designed and engineered by Skashyam Bastakoti. Join the repository to contribute updates, optimization math, or custom animation patterns.*
+Created by Skashyam Bastakoti. The repository content and tutorials are associated with the Robot LK project.
