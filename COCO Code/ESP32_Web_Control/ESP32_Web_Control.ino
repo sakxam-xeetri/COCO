@@ -3,11 +3,12 @@
 #include <esp_wifi.h>
 
 // -----------------------------------------------------------------------------
-// ESP32 Wi-Fi controller for the Robot Lk spider robot
+// ESP32 Wi-Fi controller for the COCO spider robot
 //
-// This sketch does not drive the servos directly. It replaces the Bluetooth
-// module with an ESP32 web page and forwards the same serial commands used by
-// the original robot sketch:
+// This sketch uses an ESP32 web page to provide touch controls, forwarding
+// the commands over Serial2 (pins 16/17) to the robot controller.
+//
+// Commands:
 //   F = forward
 //   B = back
 //   L = left
@@ -43,19 +44,19 @@ const char indexHtml[] PROGMEM = R"rawliteral(
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Spider Robot Control</title>
+  <title>COCO Web Controller</title>
   <style>
     :root {
-      --bg1: #08111f;
-      --bg2: #15213c;
-      --panel: rgba(9, 15, 28, 0.86);
-      --panel-strong: rgba(15, 23, 42, 0.94);
-      --accent: #4ade80;
-      --accent2: #38bdf8;
-      --accent3: #fb7185;
-      --text: #eff6ff;
-      --muted: #9fb0c9;
-      --border: rgba(148, 163, 184, 0.18);
+      --bg1: #030712;
+      --bg2: #0b1733;
+      --panel: rgba(7, 12, 22, 0.92);
+      --panel-strong: rgba(12, 20, 39, 0.96);
+      --accent: #3b82f6;
+      --accent2: #ef4444;
+      --accent3: #60a5fa;
+      --text: #eef4ff;
+      --muted: #a8b9dd;
+      --border: rgba(96, 165, 250, 0.24);
     }
     * { box-sizing: border-box; }
     html, body, button {
@@ -71,22 +72,22 @@ const char indexHtml[] PROGMEM = R"rawliteral(
       font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
       color: var(--text);
       background:
-        radial-gradient(circle at top, rgba(56, 189, 248, 0.16), transparent 30%),
-        radial-gradient(circle at 15% 80%, rgba(74, 222, 128, 0.16), transparent 25%),
-        radial-gradient(circle at 85% 15%, rgba(251, 113, 133, 0.13), transparent 22%),
+        radial-gradient(circle at top, rgba(59, 130, 246, 0.20), transparent 30%),
+        radial-gradient(circle at 15% 80%, rgba(239, 68, 68, 0.16), transparent 25%),
+        radial-gradient(circle at 85% 15%, rgba(59, 130, 246, 0.14), transparent 22%),
         linear-gradient(160deg, var(--bg1), var(--bg2));
       display: grid;
       place-items: center;
-      padding: 16px;
+      padding: 12px;
       touch-action: manipulation;
     }
     .card {
-      width: min(620px, 100%);
+      width: min(1040px, 100%);
       background: var(--panel);
       border: 1px solid var(--border);
-      border-radius: 26px;
+      border-radius: 10px;
       padding: 20px;
-      box-shadow: 0 30px 90px rgba(0, 0, 0, 0.42);
+      box-shadow: 0 34px 110px rgba(0, 0, 0, 0.52);
       backdrop-filter: blur(14px);
       overflow: hidden;
       position: relative;
@@ -95,7 +96,10 @@ const char indexHtml[] PROGMEM = R"rawliteral(
       content: '';
       position: absolute;
       inset: 0;
-      background: linear-gradient(135deg, rgba(255,255,255,0.08), transparent 30%, transparent 70%, rgba(255,255,255,0.04));
+      background:
+        radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.10), transparent 22%),
+        radial-gradient(circle at 80% 25%, rgba(239, 68, 68, 0.10), transparent 20%),
+        linear-gradient(135deg, rgba(255,255,255,0.08), transparent 30%, transparent 70%, rgba(255,255,255,0.04));
       pointer-events: none;
     }
     .hero {
@@ -104,7 +108,7 @@ const char indexHtml[] PROGMEM = R"rawliteral(
       display: flex;
       justify-content: space-between;
       gap: 16px;
-      align-items: flex-start;
+      align-items: center;
       margin-bottom: 18px;
     }
     h1 {
@@ -124,13 +128,35 @@ const char indexHtml[] PROGMEM = R"rawliteral(
       align-items: center;
       gap: 8px;
       padding: 10px 14px;
-      border-radius: 999px;
+      border-radius: 8px;
       background: rgba(255,255,255,0.06);
       border: 1px solid var(--border);
       color: var(--text);
       font-size: 0.9rem;
       white-space: nowrap;
       flex: 0 0 auto;
+    }
+    .layout {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 1.15fr 0.9fr 1.15fr;
+      gap: 16px;
+      align-items: stretch;
+    }
+    .panel {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      min-height: 390px;
+    }
+    .panel h2 {
+      margin: 0 0 12px;
+      font-size: 1rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
     }
     .status {
       display: flex;
@@ -139,24 +165,75 @@ const char indexHtml[] PROGMEM = R"rawliteral(
       align-items: center;
       margin-bottom: 18px;
       padding: 14px 16px;
-      border-radius: 18px;
+      border-radius: 8px;
       background: var(--panel-strong);
       border: 1px solid var(--border);
       font-size: 0.95rem;
       position: relative;
       z-index: 1;
     }
+    .status.center-brand {
+      justify-content: center;
+      text-align: center;
+      min-height: 78px;
+      margin-bottom: 18px;
+      gap: 0;
+    }
     .status-label { color: var(--muted); }
-    .grid {
+    .brand-copy {
+      display: grid;
+      gap: 4px;
+      justify-items: center;
+    }
+    .brand-kicker {
+      color: var(--accent2);
+      font-size: 0.78rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      font-weight: 800;
+    }
+    .brand-title {
+      color: var(--text);
+      font-size: clamp(1.15rem, 2.8vw, 1.7rem);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 900;
+    }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    .dpad {
       position: relative;
-      z-index: 1;
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 12px;
+      align-content: center;
+      height: calc(100% - 34px);
+    }
+    .dpad .spacer {
+      min-height: 64px;
+      border-radius: 8px;
+      background: transparent;
+      box-shadow: none;
+    }
+    .dpad .center {
+      min-height: 92px;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03);
     }
     button {
       border: 0;
-      border-radius: 18px;
+      border-radius: 8px;
       padding: 16px 12px;
       font-size: 1rem;
       font-weight: 800;
@@ -173,36 +250,112 @@ const char indexHtml[] PROGMEM = R"rawliteral(
     button:hover { transform: translateY(-1px); filter: brightness(1.02); }
     button:active { transform: scale(0.97); filter: brightness(0.95); }
     .forward {
-      background: linear-gradient(180deg, #bbf7d0, #22c55e);
+      background: linear-gradient(180deg, #93c5fd, #2563eb);
       font-size: 1.08rem;
-      min-height: 88px;
+      min-height: 110px;
+      grid-column: 2;
     }
-    .back { background: linear-gradient(180deg, #fecdd3, #fb7185); }
-    .left, .right { background: linear-gradient(180deg, #bae6fd, #38bdf8); }
-    .gesture { background: linear-gradient(180deg, #fde68a, #f59e0b); }
-    .basic-pos { background: linear-gradient(180deg, #ddd6fe, #8b5cf6); color: #fff; }
-    .spider-pos { background: linear-gradient(180deg, #fbcfe8, #ec4899); color: #fff; }
-    .led-on { background: linear-gradient(180deg, #bbf7d0, #4ade80); }
-    .led-off { background: linear-gradient(180deg, #e2e8f0, #94a3b8); }
-    .led-blink { background: linear-gradient(180deg, #c4b5fd, #8b5cf6); color: #fff; }
+    .back { background: linear-gradient(180deg, #fca5a5, #dc2626); color: #fff; }
+    .left, .right { background: linear-gradient(180deg, #bfdbfe, #3b82f6); }
+    .gesture { background: linear-gradient(180deg, #dbeafe, #2563eb); color: #fff; }
+    .basic-pos { background: linear-gradient(180deg, #bfdbfe, #1d4ed8); color: #fff; }
+    .spider-pos { background: linear-gradient(180deg, #fecaca, #ef4444); color: #fff; }
+    .led-on { background: linear-gradient(180deg, #93c5fd, #2563eb); color: #fff; }
+    .led-off { background: linear-gradient(180deg, #fecaca, #b91c1c); color: #fff; }
+    .led-blink { background: linear-gradient(180deg, #60a5fa, #ef4444); color: #fff; }
     .wide { grid-column: span 3; }
-    .nav-left, .nav-right { min-height: 72px; }
+    .nav-left, .nav-right { min-height: 80px; }
     .nav-center {
-      min-height: 92px;
+      min-height: 110px;
       display: grid;
       place-items: center;
-      box-shadow: 0 16px 30px rgba(34, 197, 94, 0.22);
+      box-shadow: 0 18px 36px rgba(59, 130, 246, 0.28);
+    }
+    .dpad-btn {
+      position: relative;
+      display: grid;
+      place-items: center;
+      font-size: 1.35rem;
+      font-weight: 900;
+      color: #061018;
+      border-radius: 6px;
+      clip-path: polygon(18% 0, 82% 0, 100% 18%, 100% 82%, 82% 100%, 18% 100%, 0 82%, 0 18%);
+      box-shadow: inset 0 -8px 18px rgba(0, 0, 0, 0.18), 0 10px 24px rgba(0, 0, 0, 0.18);
+    }
+    .dpad-up {
+      grid-column: 2;
+      background: linear-gradient(180deg, #93c5fd, #2563eb);
+      min-height: 92px;
+    }
+    .dpad-left {
+      background: linear-gradient(180deg, #bfdbfe, #3b82f6);
+      min-height: 78px;
+    }
+    .dpad-right {
+      background: linear-gradient(180deg, #fca5a5, #ef4444);
+      min-height: 78px;
+    }
+    .dpad-down {
+      grid-column: 2;
+      background: linear-gradient(180deg, #fecaca, #dc2626);
+      min-height: 92px;
     }
     .pill {
       display: inline-flex;
       align-items: center;
       gap: 6px;
       padding: 6px 10px;
-      border-radius: 999px;
+      border-radius: 6px;
       background: rgba(255,255,255,0.08);
       color: var(--muted);
       font-size: 0.8rem;
       margin-bottom: 8px;
+    }
+    .control-pad {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      align-items: center;
+      justify-items: stretch;
+    }
+    .action-stack {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      align-content: start;
+    }
+    .action-stack .action-title {
+      grid-column: 1 / -1;
+      margin: 0 0 2px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      font-weight: 800;
+    }
+    .action-stack button {
+      grid-column: auto;
+      min-height: 72px;
+      border-radius: 8px;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06), 0 10px 24px rgba(0, 0, 0, 0.18);
+    }
+    .action-stack .stance {
+      background: linear-gradient(180deg, #bfdbfe, #1d4ed8);
+      color: #fff;
+    }
+    .action-stack .gesture {
+      background: linear-gradient(180deg, #dbeafe, #2563eb);
+      color: #fff;
+    }
+    .action-stack .power {
+      background: linear-gradient(180deg, #fecaca, #dc2626);
+      color: #fff;
+    }
+    .top-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 12px;
     }
     .hint {
       margin-top: 18px;
@@ -226,9 +379,13 @@ const char indexHtml[] PROGMEM = R"rawliteral(
       .card { padding: 16px; border-radius: 22px; }
       .hero { flex-direction: column; }
       .badge { align-self: flex-start; }
-      .grid { gap: 10px; }
+      .layout { grid-template-columns: 1fr; }
+      .panel { min-height: auto; }
+      .dpad, .action-stack { gap: 10px; }
       button { min-height: 60px; padding: 14px 10px; }
-      .forward { min-height: 82px; }
+      .forward { min-height: 90px; }
+      .dpad-up, .dpad-down { min-height: 84px; }
+      .dpad-left, .dpad-right { min-height: 72px; }
       .hint { flex-direction: column; }
     }
   </style>
@@ -237,46 +394,92 @@ const char indexHtml[] PROGMEM = R"rawliteral(
   <div class="card">
     <div class="hero">
       <div>
-        <div class="pill">Live Web Control</div>
+        <div class="pill">ESP32 Web Controller</div>
         <h1>Spider Robot Control</h1>
-        <p class="subtitle">Press and hold Forward to walk continuously. Release to stop instantly. Use the pose buttons for stance control.</p>
+        <p class="subtitle">Hold a direction to move, release to stop, and use the pose buttons for stance control.</p>
       </div>
       <div class="badge">Wi-Fi AP: <span class="pulse">SpiderRobot</span></div>
     </div>
-    <div class="status">
-      <div><span class="status-label">Last command</span> <span class="pulse" id="cmd">none</span></div>
-      <div id="msg">Ready</div>
+    <div class="status center-brand">
+      <div class="brand-copy">
+        <div class="brand-kicker">Robotics</div>
+        <div class="brand-title">COCO Controller</div>
+      </div>
+      <div class="sr-only">
+        <span class="status-label">Last command</span> <span class="pulse" id="cmd">none</span>
+        <span id="msg">Ready</span>
+      </div>
     </div>
-    <div class="grid">
-      <div></div>
-      <button class="forward hold nav-center" data-cmd="F">Forward<br><span class="pill">Hold to move</span></button>
-      <div></div>
-      <button class="left hold nav-left" data-cmd="L">Left</button>
-      <button class="back hold" data-cmd="B">Back</button>
-      <button class="right hold nav-right" data-cmd="R">Right</button>
-      <button class="basic-pos wide" onclick="sendCmd('P')">Basic Position</button>
-      <button class="spider-pos wide" onclick="sendCmd('Q')">Spider Position</button>
-      <button class="gesture wide" onclick="sendCmd('U')">Hand Shake</button>
-      <button class="gesture wide" onclick="sendCmd('W')">Hand Wave</button>
-      <button class="gesture wide" onclick="sendCmd('V')">Body Dance</button>
-      <button class="led-on wide" onclick="sendCmd('O')">LED On</button>
-      <button class="led-off wide" onclick="sendCmd('X')">LED Off</button>
-      <button class="led-blink wide" onclick="sendCmd('K')">LED Blink</button>
+    <div class="layout">
+      <div class="panel">
+        <h2>Movement</h2>
+        <div class="dpad">
+          <div class="spacer"></div>
+          <button class="forward hold nav-center dpad-btn dpad-up" data-cmd="F">▲</button>
+          <div class="spacer"></div>
+          <button class="left hold nav-left dpad-btn dpad-left" data-cmd="L">◀</button>
+          <div class="center"></div>
+          <button class="right hold nav-right dpad-btn dpad-right" data-cmd="R">▶</button>
+          <div class="spacer"></div>
+          <button class="back hold dpad-btn dpad-down" data-cmd="B">▼</button>
+          <div class="spacer"></div>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>Status</h2>
+        <div class="top-row">
+          <div class="badge" style="justify-content:center; width:100%;">Current: <span class="pulse" id="currentCmd">none</span></div>
+          <div class="badge" style="justify-content:center; width:100%;">Mode: <span class="pulse">Wi-Fi</span></div>
+        </div>
+        <div class="status" style="margin-bottom:12px;">
+          <div><span class="status-label">Message</span></div>
+          <div id="currentMsg">Ready</div>
+        </div>
+        <div class="hint" style="margin-top:0;">
+          <div>Hold a direction to move.</div>
+          <div class="footer-note">Release to stop instantly.</div>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>Actions</h2>
+        <div class="action-stack">
+          <div class="action-title">Poses</div>
+          <button class="stance" onclick="sendCmd('P')">Basic Position</button>
+          <button class="power" onclick="sendCmd('Q')">Spider Position</button>
+          <div class="action-title">Gestures</div>
+          <button class="gesture" onclick="sendCmd('U')">Hand Shake</button>
+          <button class="gesture" onclick="sendCmd('W')">Hand Wave</button>
+          <button class="gesture" onclick="sendCmd('V')">Body Dance</button>
+          <button class="led-off" id="ledCycleBtn" onclick="cycleLedMode()">LED Off</button>
+        </div>
+      </div>
     </div>
     <div class="hint">
       <div>Wi-Fi password: <span class="pulse">12345678</span></div>
-      <div class="footer-note">Release any direction button to send stop.</div>
+      <div class="footer-note">Landscape gamepad layout for phone or tablet use.</div>
     </div>
   </div>
   <script>
     let activeMotionCmd = '';
+    let ledCycleState = 0;
+
+    function setStatus(cmd, message) {
+      document.getElementById('cmd').textContent = cmd;
+      document.getElementById('currentCmd').textContent = cmd;
+      document.getElementById('msg').textContent = message;
+      document.getElementById('currentMsg').textContent = message;
+    }
+
+    function setLedButton(label, styleClass) {
+      const button = document.getElementById('ledCycleBtn');
+      button.textContent = label;
+      button.className = styleClass;
+    }
 
     async function sendCmd(cmd, fireAndForget = false) {
-      const msg = document.getElementById('msg');
-      const last = document.getElementById('cmd');
       try {
         if (!fireAndForget) {
-          msg.textContent = 'Sending ' + cmd + '...';
+          setStatus(document.getElementById('cmd').textContent, 'Sending ' + cmd + '...');
         }
 
         const res = await fetch('/cmd?go=' + encodeURIComponent(cmd), {
@@ -284,15 +487,35 @@ const char indexHtml[] PROGMEM = R"rawliteral(
         });
 
         const text = await res.text();
-        last.textContent = cmd;
+        setStatus(cmd, fireAndForget ? document.getElementById('currentMsg').textContent : text);
         if (!fireAndForget) {
-          msg.textContent = text;
+          setStatus(cmd, text);
         }
       } catch (e) {
         if (!fireAndForget) {
-          msg.textContent = 'Connection error';
+          setStatus(document.getElementById('cmd').textContent, 'Connection error');
         }
       }
+    }
+
+    function cycleLedMode() {
+      if (ledCycleState === 0) {
+        ledCycleState = 1;
+        setLedButton('LED On', 'led-on');
+        sendCmd('O');
+        return;
+      }
+
+      if (ledCycleState === 1) {
+        ledCycleState = 2;
+        setLedButton('LED Blink', 'led-blink');
+        sendCmd('K');
+        return;
+      }
+
+      ledCycleState = 0;
+      setLedButton('LED Off', 'led-off');
+      sendCmd('X');
     }
 
     function startHold(cmd) {
@@ -302,9 +525,7 @@ const char indexHtml[] PROGMEM = R"rawliteral(
 
       stopHold(true);
       activeMotionCmd = cmd;
-      document.getElementById('msg').textContent = 'Holding ' + cmd;
-      document.getElementById('cmd').textContent = cmd;
-
+      setStatus(cmd, 'Holding ' + cmd);
       sendCmd(cmd, true);
     }
 
@@ -317,8 +538,7 @@ const char indexHtml[] PROGMEM = R"rawliteral(
       sendCmd('S', true);
 
       if (!silent) {
-        document.getElementById('cmd').textContent = 'S';
-        document.getElementById('msg').textContent = 'Stopped';
+        setStatus('S', 'Stopped');
       }
     }
 
@@ -338,7 +558,6 @@ const char indexHtml[] PROGMEM = R"rawliteral(
     }
 
     document.addEventListener('contextmenu', (e) => e.preventDefault());
-
     window.addEventListener('blur', () => stopHold(true));
     window.addEventListener('pagehide', () => stopHold(true));
     document.addEventListener('visibilitychange', () => {
@@ -409,7 +628,7 @@ void setup() {
   server.begin();
 
   Serial.println();
-  Serial.println("ESP32 Spider Robot Web Controller started");
+  Serial.println("ESP32 Web Controller started");
   Serial.print("Reset reason: ");
   Serial.println((int)esp_reset_reason());
   Serial.print("AP IP: ");
