@@ -192,6 +192,21 @@ That setup is useful when you want:
 - A larger on-screen control pad
 - A cleaner browser interface for demos
 
+## OTA Firmware Update (ESP32 Web Controller)
+
+The ESP32 Web Controller includes an Over-The-Air (OTA) update feature built directly into the web interface. This allows you to flash new code wirelessly without plugging the ESP32 into your computer via a USB cable.
+
+### How to use OTA Update:
+
+1. Connect your device (phone or PC) to the **SpiderRobot** Wi-Fi network (Password: `12345678`).
+2. Open your web browser and navigate to `http://192.168.4.1/`.
+3. In the Tactical Interface under the **[ ACTIONS & PROTOCOLS ]** -> **UTILITIES** section, click the **SYS UPDATE** button.
+4. You will be redirected to the Firmware Update page.
+5. In the Arduino IDE, open your updated sketch and go to **Sketch** -> **Export compiled Binary** to generate a `.bin` file.
+6. On the web update page, click **Choose File** and select your compiled `.bin` file.
+7. Click **UPLOAD & FLASH**. 
+8. The ESP32 will flash the new firmware wirelessly and automatically reboot when finished!
+
 ## Troubleshooting
 
 - If the robot jitters or moves in the wrong direction, recheck servo horn alignment before changing the code.

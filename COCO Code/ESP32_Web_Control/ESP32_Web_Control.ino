@@ -1,6 +1,7 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <esp_wifi.h>
+#include <Update.h>
 
 // -----------------------------------------------------------------------------
 // ESP32 Wi-Fi controller for the COCO spider robot
@@ -37,6 +38,37 @@ IPAddress apGateway(192, 168, 4, 1);
 IPAddress apSubnet(255, 255, 255, 0);
 
 WebServer server(80);
+
+const char updateHtml[] PROGMEM = R"rawliteral(
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Firmware Update</title>
+  <style>
+    body { background: #020611; color: #00f3ff; font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+    .box { background: rgba(6, 15, 30, 0.6); padding: 30px; border: 1px solid rgba(0, 243, 255, 0.2); border-radius: 8px; box-shadow: 0 0 15px rgba(0, 243, 255, 0.05); text-align: center; }
+    h2 { margin-top: 0; letter-spacing: 2px; }
+    input[type=file] { margin: 20px 0; color: #5e849c; }
+    input[type=submit] { background: rgba(0, 0, 0, 0.5); border: 1px solid var(--neon-cyan); color: #00f3ff; padding: 10px 20px; cursor: pointer; transition: 0.2s; border-color: rgba(0, 243, 255, 0.5); }
+    input[type=submit]:hover { background: rgba(0, 243, 255, 0.1); box-shadow: 0 0 10px rgba(0, 243, 255, 0.2); }
+    a { color: #5e849c; text-decoration: none; margin-top: 20px; display: inline-block; font-size: 0.8rem; }
+    a:hover { color: #00f3ff; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>[ FIRMWARE UPDATE ]</h2>
+    <form method="POST" action="/update" enctype="multipart/form-data">
+      <input type="file" name="update" accept=".bin" required><br>
+      <input type="submit" value="UPLOAD & FLASH">
+    </form>
+    <a href="/">&lt; RETURN TO CONTROL</a>
+  </div>
+</body>
+</html>
+)rawliteral";
 
 const char indexHtml[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
@@ -302,7 +334,8 @@ const char indexHtml[] PROGMEM = R"rawliteral(
       <div class="action-group">
         <h3>UTILITIES</h3>
         <div class="btn-grid" style="grid-template-columns: 1fr;">
-          <button id="ledCycleBtn" class="action-btn toggle" onclick="cycleLedMode()">ILLUMINATION: OFF</button>
+          <button id="ledCycleBtn"
+          <button class="action-btn" onclick="window.location.href=\'/update\'">SYS UPDATE</button> class="action-btn toggle" onclick="cycleLedMode()">ILLUMINATION: OFF</button>
         </div>
       </div>
     </section>
@@ -461,6 +494,37 @@ void setup() {
   server.on("/", handleRoot);
   server.on("/cmd", handleCommand);
   server.onNotFound(handleNotFound);
+  server.on("/update", HTTP_GET, []() {
+    server.sendHeader("Connection", "close");
+    server.send_P(200, "text/html", updateHtml);
+  });
+  server.on("/update", HTTP_POST, []() {
+    server.sendHeader("Connection", "close");
+    server.send(200, "text/plain", (Update.hasError()) ? "UPDATE FAILED!" : "UPDATE SUCCESS! Rebooting...");
+    delay(1000);
+    ESP.restart();
+  }, []() {
+    HTTPUpload& upload = server.upload();
+    if (upload.status == UPLOAD_FILE_START) {
+      Serial.printf("Update: %s
+", upload.filename.c_str());
+      if (!Update.begin(UPDATE_SIZE_UNKNOWN)) {
+        Update.printError(Serial);
+      }
+    } else if (upload.status == UPLOAD_FILE_WRITE) {
+      if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
+        Update.printError(Serial);
+      }
+    } else if (upload.status == UPLOAD_FILE_END) {
+      if (Update.end(true)) {
+        Serial.printf("Update Success: %u bytes
+", upload.totalSize);
+      } else {
+        Update.printError(Serial);
+      }
+    }
+  });
+
   server.begin();
 
   Serial.println();
