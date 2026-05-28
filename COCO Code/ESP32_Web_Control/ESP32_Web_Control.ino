@@ -40,506 +40,344 @@ WebServer server(80);
 
 const char indexHtml[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>COCO Web Controller</title>
+  <title>Spider Tactical UI</title>
   <style>
     :root {
-      --bg1: #030712;
-      --bg2: #0b1733;
-      --panel: rgba(7, 12, 22, 0.92);
-      --panel-strong: rgba(12, 20, 39, 0.96);
-      --accent: #3b82f6;
-      --accent2: #ef4444;
-      --accent3: #60a5fa;
-      --text: #eef4ff;
-      --muted: #a8b9dd;
-      --border: rgba(96, 165, 250, 0.24);
+      --bg-base: #020611;
+      --bg-glow: #0a1931;
+      --neon-cyan: #00f3ff;
+      --neon-red: #ff003c;
+      --neon-green: #39ff14;
+      --panel-bg: rgba(6, 15, 30, 0.6);
+      --panel-border: rgba(0, 243, 255, 0.2);
+      --text-main: #e0f8ff;
+      --text-muted: #5e849c;
     }
     * { box-sizing: border-box; }
-    html, body, button {
+    html, body {
       -webkit-touch-callout: none;
       -webkit-user-select: none;
-      -ms-user-select: none;
       user-select: none;
+      height: 100%;
+      margin: 0;
+      font-family: 'Segoe UI', 'Roboto', 'Space Grotesk', monospace;
+      background: var(--bg-base);
     }
-    html, body { min-height: 100%; }
     body {
-      margin: 0;
-      min-height: 100vh;
-      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-      color: var(--text);
-      background:
-        radial-gradient(circle at top, rgba(59, 130, 246, 0.20), transparent 30%),
-        radial-gradient(circle at 15% 80%, rgba(239, 68, 68, 0.16), transparent 25%),
-        radial-gradient(circle at 85% 15%, rgba(59, 130, 246, 0.14), transparent 22%),
-        linear-gradient(160deg, var(--bg1), var(--bg2));
-      display: grid;
-      place-items: center;
-      padding: 12px;
-      touch-action: manipulation;
-    }
-    .card {
-      width: min(1040px, 100%);
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 20px;
-      box-shadow: 0 34px 110px rgba(0, 0, 0, 0.52);
-      backdrop-filter: blur(14px);
-      overflow: hidden;
-      position: relative;
-    }
-    .card::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background:
-        radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.10), transparent 22%),
-        radial-gradient(circle at 80% 25%, rgba(239, 68, 68, 0.10), transparent 20%),
-        linear-gradient(135deg, rgba(255,255,255,0.08), transparent 30%, transparent 70%, rgba(255,255,255,0.04));
-      pointer-events: none;
-    }
-    .hero {
-      position: relative;
-      z-index: 1;
+      background-image: 
+        radial-gradient(circle at 50% 50%, var(--bg-glow) 0%, var(--bg-base) 80%),
+        linear-gradient(0deg, rgba(0,243,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,243,255,0.03) 1px, transparent 1px);
+      background-size: 100% 100%, 30px 30px, 30px 30px;
+      color: var(--text-main);
       display: flex;
-      justify-content: space-between;
-      gap: 16px;
-      align-items: center;
-      margin-bottom: 18px;
+      flex-direction: column;
+      padding: 10px 20px;
+      overflow-x: hidden;
     }
-    h1 {
-      margin: 0 0 8px;
-      font-size: clamp(1.8rem, 4vw, 2.45rem);
-      letter-spacing: 0.01em;
-      line-height: 1.05;
-    }
-    .subtitle {
-      margin: 0;
-      color: var(--muted);
-      line-height: 1.5;
-      max-width: 32rem;
-    }
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 14px;
+    .neon-box {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      box-shadow: 0 0 15px rgba(0, 243, 255, 0.05), inset 0 0 20px rgba(0, 243, 255, 0.05);
       border-radius: 8px;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid var(--border);
-      color: var(--text);
-      font-size: 0.9rem;
-      white-space: nowrap;
-      flex: 0 0 auto;
-    }
-    .layout {
+      backdrop-filter: blur(10px);
       position: relative;
-      z-index: 1;
-      display: grid;
-      grid-template-columns: 1.15fr 0.9fr 1.15fr;
-      gap: 16px;
-      align-items: stretch;
     }
-    .panel {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 16px;
-      min-height: 390px;
+    .neon-box::after {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+      opacity: 0.5;
     }
-    .panel h2 {
-      margin: 0 0 12px;
-      font-size: 1rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--muted);
+    .header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 15px 20px; margin-bottom: 20px;
     }
-    .status {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      align-items: center;
-      margin-bottom: 18px;
-      padding: 14px 16px;
-      border-radius: 8px;
-      background: var(--panel-strong);
-      border: 1px solid var(--border);
-      font-size: 0.95rem;
-      position: relative;
-      z-index: 1;
+    .logo {
+      font-size: 1.5rem; font-weight: 900; letter-spacing: 2px;
+      color: var(--neon-cyan); text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+      display: flex; align-items: center; gap: 10px;
     }
-    .status.center-brand {
-      justify-content: center;
-      text-align: center;
-      min-height: 78px;
-      margin-bottom: 18px;
-      gap: 0;
+    .logo-icon { font-size: 2rem; }
+    .header-status {
+      display: flex; align-items: center; gap: 15px; font-size: 0.85rem;
+      color: var(--neon-cyan); letter-spacing: 1px;
     }
-    .status-label { color: var(--muted); }
-    .brand-copy {
-      display: grid;
-      gap: 4px;
-      justify-items: center;
+    .dot {
+      display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+      background: var(--neon-green); box-shadow: 0 0 10px var(--neon-green);
+      animation: pulse 2s infinite; margin-right: 5px;
     }
-    .brand-kicker {
-      color: var(--accent2);
-      font-size: 0.78rem;
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      font-weight: 800;
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+    .main-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px; flex: 1; margin-bottom: 20px;
     }
-    .brand-title {
-      color: var(--text);
-      font-size: clamp(1.15rem, 2.8vw, 1.7rem);
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      font-weight: 900;
+    .panel { padding: 20px; display: flex; flex-direction: column; }
+    h2.panel-title {
+      font-size: 0.95rem; color: var(--neon-cyan); letter-spacing: 3px;
+      margin-top: 0; margin-bottom: 20px; border-bottom: 1px solid rgba(0, 243, 255, 0.2);
+      padding-bottom: 10px; text-transform: uppercase;
     }
-    .sr-only {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0, 0, 0, 0);
-      white-space: nowrap;
-      border: 0;
-    }
+    .bracket { color: var(--text-muted); }
+    /* Movement panel */
+    .dpad-container { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; }
     .dpad {
-      position: relative;
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-      align-content: center;
-      height: calc(100% - 34px);
-    }
-    .dpad .spacer {
-      min-height: 64px;
-      border-radius: 8px;
-      background: transparent;
-      box-shadow: none;
-    }
-    .dpad .center {
-      min-height: 92px;
-      border-radius: 6px;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid var(--border);
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03);
-    }
-    button {
-      border: 0;
-      border-radius: 8px;
-      padding: 16px 12px;
-      font-size: 1rem;
-      font-weight: 800;
-      letter-spacing: 0.01em;
-      color: #07101d;
-      background: linear-gradient(180deg, #e2e8f0, #cbd5e1);
-      cursor: pointer;
-      transition: transform 0.14s ease, filter 0.14s ease, box-shadow 0.14s ease;
-      min-height: 64px;
-      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
-      -webkit-tap-highlight-color: transparent;
-      touch-action: none;
-    }
-    button:hover { transform: translateY(-1px); filter: brightness(1.02); }
-    button:active { transform: scale(0.97); filter: brightness(0.95); }
-    .forward {
-      background: linear-gradient(180deg, #93c5fd, #2563eb);
-      font-size: 1.08rem;
-      min-height: 110px;
-      grid-column: 2;
-    }
-    .back { background: linear-gradient(180deg, #fca5a5, #dc2626); color: #fff; }
-    .left, .right { background: linear-gradient(180deg, #bfdbfe, #3b82f6); }
-    .gesture { background: linear-gradient(180deg, #dbeafe, #2563eb); color: #fff; }
-    .basic-pos { background: linear-gradient(180deg, #bfdbfe, #1d4ed8); color: #fff; }
-    .spider-pos { background: linear-gradient(180deg, #fecaca, #ef4444); color: #fff; }
-    .led-on { background: linear-gradient(180deg, #93c5fd, #2563eb); color: #fff; }
-    .led-off { background: linear-gradient(180deg, #fecaca, #b91c1c); color: #fff; }
-    .led-blink { background: linear-gradient(180deg, #60a5fa, #ef4444); color: #fff; }
-    .wide { grid-column: span 3; }
-    .nav-left, .nav-right { min-height: 80px; }
-    .nav-center {
-      min-height: 110px;
-      display: grid;
-      place-items: center;
-      box-shadow: 0 18px 36px rgba(59, 130, 246, 0.28);
+      display: grid; grid-template-columns: repeat(3, 80px); grid-template-rows: repeat(3, 80px);
+      gap: 15px; margin-bottom: 20px;
     }
     .dpad-btn {
-      position: relative;
-      display: grid;
-      place-items: center;
-      font-size: 1.35rem;
-      font-weight: 900;
-      color: #061018;
-      border-radius: 6px;
-      clip-path: polygon(18% 0, 82% 0, 100% 18%, 100% 82%, 82% 100%, 18% 100%, 0 82%, 0 18%);
-      box-shadow: inset 0 -8px 18px rgba(0, 0, 0, 0.18), 0 10px 24px rgba(0, 0, 0, 0.18);
+      background: rgba(0, 243, 255, 0.05); border: 1px solid var(--neon-cyan);
+      color: var(--neon-cyan); box-shadow: inset 0 0 15px rgba(0, 243, 255, 0.1);
+      border-radius: 12px; font-size: 1.5rem; font-weight: bold; cursor: pointer;
+      display: flex; justify-content: center; align-items: center;
+      transition: all 0.1s ease; touch-action: none;
     }
-    .dpad-up {
-      grid-column: 2;
-      background: linear-gradient(180deg, #93c5fd, #2563eb);
-      min-height: 92px;
+    .dpad-btn:hover { background: rgba(0, 243, 255, 0.15); box-shadow: 0 0 20px rgba(0, 243, 255, 0.4); }
+    .dpad-btn:active { background: var(--neon-cyan); color: #000; transform: scale(0.95); }
+    .dpad-up { grid-column: 2; grid-row: 1; }
+    .dpad-left { grid-column: 1; grid-row: 2; }
+    .dpad-right { grid-column: 3; grid-row: 2; }
+    .dpad-down { grid-column: 2; grid-row: 3; }
+    .dpad-center {
+      grid-column: 2; grid-row: 2; border-color: var(--neon-red); color: var(--neon-red);
+      font-size: 0.8rem; box-shadow: inset 0 0 15px rgba(255, 0, 60, 0.1); font-weight: 900; letter-spacing: 1px;
     }
-    .dpad-left {
-      background: linear-gradient(180deg, #bfdbfe, #3b82f6);
-      min-height: 78px;
+    .dpad-center:hover { background: rgba(255, 0, 60, 0.15); box-shadow: 0 0 20px rgba(255, 0, 60, 0.4); }
+    .dpad-center:active { background: var(--neon-red); color: #fff; }
+    .instruction { color: var(--text-muted); font-size: 0.75rem; letter-spacing: 2px; text-align: center; }
+    
+    /* Center status */
+    .status-list { display: flex; flex-direction: column; gap: 15px; font-size: 0.9rem; letter-spacing: 1px; flex: 1; }
+    .status-item {
+      display: flex; justify-content: space-between; align-items: center;
+      background: rgba(0, 0, 0, 0.4); padding: 12px 15px; border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.05); border-left: 3px solid var(--neon-cyan);
     }
-    .dpad-right {
-      background: linear-gradient(180deg, #fca5a5, #ef4444);
-      min-height: 78px;
+    .status-label { color: var(--text-muted); }
+    .status-val { color: var(--neon-cyan); font-weight: bold; text-shadow: 0 0 5px rgba(0, 243, 255, 0.3); }
+    .status-val.alert { color: var(--neon-red); text-shadow: 0 0 5px rgba(255, 0, 60, 0.3); }
+    .center-visual {
+      flex: 1; display: flex; justify-content: center; align-items: center; min-height: 150px; position: relative;
     }
-    .dpad-down {
-      grid-column: 2;
-      background: linear-gradient(180deg, #fecaca, #dc2626);
-      min-height: 92px;
+    .core-reactor {
+      width: 100px; height: 100px; border-radius: 50%;
+      border: 2px dashed var(--neon-cyan); animation: spin 20s linear infinite;
+      display: flex; justify-content: center; align-items: center;
+      box-shadow: 0 0 30px rgba(0, 243, 255, 0.1);
     }
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 10px;
-      border-radius: 6px;
-      background: rgba(255,255,255,0.08);
-      color: var(--muted);
-      font-size: 0.8rem;
-      margin-bottom: 8px;
+    .core-inner {
+      width: 60px; height: 60px; border-radius: 50%;
+      background: radial-gradient(circle, var(--neon-cyan) 0%, transparent 70%);
+      opacity: 0.5; animation: pulse 3s infinite;
     }
-    .control-pad {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 12px;
-      align-items: center;
-      justify-items: stretch;
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+    
+    /* Action right panel */
+    .action-group { margin-bottom: 20px; }
+    .action-group h3 { font-size: 0.75rem; color: var(--text-muted); letter-spacing: 2px; margin: 0 0 10px 0; }
+    .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .action-btn {
+      background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 255, 255, 0.15);
+      color: var(--text-main); padding: 12px 10px; font-size: 0.8rem; letter-spacing: 1px;
+      border-radius: 6px; cursor: pointer; transition: all 0.2s;
+      text-transform: uppercase; position: relative; overflow: hidden;
+      display: flex; align-items: center; gap: 8px; justify-content: center;
     }
-    .action-stack {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      align-content: start;
+    .action-btn::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--neon-cyan); opacity: 0.3; transition: 0.2s; }
+    .action-btn:hover { border-color: var(--neon-cyan); background: rgba(0, 243, 255, 0.1); box-shadow: 0 0 10px rgba(0, 243, 255, 0.2); }
+    .action-btn:hover::before { opacity: 1; box-shadow: 0 0 8px var(--neon-cyan); }
+    .action-btn:active { transform: scale(0.97); }
+    
+    .action-btn.toggle { border-color: rgba(255, 0, 60, 0.3); }
+    .action-btn.toggle::before { background: var(--neon-red); opacity: 0.5; }
+    .action-btn.toggle:hover { border-color: var(--neon-red); background: rgba(255, 0, 60, 0.1); box-shadow: 0 0 10px rgba(255, 0, 60, 0.2); }
+    
+    .action-btn.toggle.on { border-color: var(--neon-green); color: #fff; text-shadow: 0 0 5px var(--neon-green); background: rgba(57, 255, 20, 0.1); }
+    .action-btn.toggle.on::before { background: var(--neon-green); opacity: 1; box-shadow: 0 0 8px var(--neon-green); }
+    
+    .action-btn.toggle.blink { border-color: orange; color: #fff; text-shadow: 0 0 5px orange; background: rgba(255, 165, 0, 0.1); }
+    .action-btn.toggle.blink::before { background: orange; opacity: 1; box-shadow: 0 0 8px orange; }
+
+    /* Footer */
+    .footer {
+      display: flex; justify-content: space-between; border-top: 1px dashed rgba(0, 243, 255, 0.3);
+      padding-top: 15px; font-size: 0.75rem; color: var(--text-muted); letter-spacing: 2px;
     }
-    .action-stack .action-title {
-      grid-column: 1 / -1;
-      margin: 0 0 2px;
-      color: var(--muted);
-      font-size: 0.82rem;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      font-weight: 800;
-    }
-    .action-stack button {
-      grid-column: auto;
-      min-height: 72px;
-      border-radius: 8px;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06), 0 10px 24px rgba(0, 0, 0, 0.18);
-    }
-    .action-stack .stance {
-      background: linear-gradient(180deg, #bfdbfe, #1d4ed8);
-      color: #fff;
-    }
-    .action-stack .gesture {
-      background: linear-gradient(180deg, #dbeafe, #2563eb);
-      color: #fff;
-    }
-    .action-stack .power {
-      background: linear-gradient(180deg, #fecaca, #dc2626);
-      color: #fff;
-    }
-    .top-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-    .hint {
-      margin-top: 18px;
-      font-size: 0.9rem;
-      color: var(--muted);
-      position: relative;
-      z-index: 1;
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    .pulse {
-      color: var(--accent);
-      font-weight: 700;
-    }
-    .footer-note {
-      color: var(--muted);
-    }
-    @media (max-width: 560px) {
-      .card { padding: 16px; border-radius: 22px; }
-      .hero { flex-direction: column; }
-      .badge { align-self: flex-start; }
-      .layout { grid-template-columns: 1fr; }
-      .panel { min-height: auto; }
-      .dpad, .action-stack { gap: 10px; }
-      button { min-height: 60px; padding: 14px 10px; }
-      .forward { min-height: 90px; }
-      .dpad-up, .dpad-down { min-height: 84px; }
-      .dpad-left, .dpad-right { min-height: 72px; }
-      .hint { flex-direction: column; }
+    .footer-highlight { color: var(--neon-cyan); }
+
+    /* Media query for smaller mobile */
+    @media (max-width: 768px) {
+      .header { flex-direction: column; gap: 15px; }
+      .footer { flex-direction: column; text-align: center; gap: 10px; }
+      .dpad { grid-template-columns: repeat(3, 70px); grid-template-rows: repeat(3, 70px); gap: 10px;}
+      .dpad-btn { font-size: 1.2rem; }
+      .btn-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
-  <div class="card">
-    <div class="hero">
+  <header class="header neon-box">
+    <div class="logo">
+      <span class="logo-icon">&#128375;</span> 
       <div>
-        <div class="pill">ESP32 Web Controller</div>
-        <h1>Spider Robot Control</h1>
-        <p class="subtitle">Hold a direction to move, release to stop, and use the pose buttons for stance control.</p>
-      </div>
-      <div class="badge">Wi-Fi AP: <span class="pulse">SpiderRobot</span></div>
-    </div>
-    <div class="status center-brand">
-      <div class="brand-copy">
-        <div class="brand-kicker">Robotics</div>
-        <div class="brand-title">COCO Controller</div>
-      </div>
-      <div class="sr-only">
-        <span class="status-label">Last command</span> <span class="pulse" id="cmd">none</span>
-        <span id="msg">Ready</span>
+        SPIDER CONTROLLER<br>
+        <span style="font-size:0.6rem; color:var(--text-muted); letter-spacing:4px; font-weight:normal;">TACTICAL INTERFACE V2.0</span>
       </div>
     </div>
-    <div class="layout">
-      <div class="panel">
-        <h2>Movement</h2>
+    <div class="header-status">
+      <div class="status-badge"><span class="dot"></span>WIFI DIRECT</div>
+      <div style="background: rgba(0,243,255,0.1); padding: 5px 10px; border: 1px solid var(--neon-cyan); border-radius: 4px;">AP: SpiderRobot</div>
+    </div>
+  </header>
+
+  <main class="main-grid">
+    <section class="panel neon-box">
+      <h2 class="panel-title"><span class="bracket">[</span> MOVEMENT <span class="bracket">]</span></h2>
+      <div class="dpad-container">
         <div class="dpad">
-          <div class="spacer"></div>
-          <button class="forward hold nav-center dpad-btn dpad-up" data-cmd="F">▲</button>
-          <div class="spacer"></div>
-          <button class="left hold nav-left dpad-btn dpad-left" data-cmd="L">◀</button>
-          <div class="center"></div>
-          <button class="right hold nav-right dpad-btn dpad-right" data-cmd="R">▶</button>
-          <div class="spacer"></div>
-          <button class="back hold dpad-btn dpad-down" data-cmd="B">▼</button>
-          <div class="spacer"></div>
+          <button class="dpad-btn dpad-up hold" data-cmd="F">&#9650;</button>
+          <button class="dpad-btn dpad-left hold" data-cmd="L">&#9664;</button>
+          <button class="dpad-btn dpad-center hold" data-cmd="S">STOP</button>
+          <button class="dpad-btn dpad-right hold" data-cmd="R">&#9654;</button>
+          <button class="dpad-btn dpad-down hold" data-cmd="B">&#9660;</button>
+        </div>
+        <div class="instruction">PRESS &amp; HOLD DIRECTION TO MOVE<br>RELEASE TO HALT</div>
+      </div>
+    </section>
+
+    <section class="panel neon-box center-panel">
+      <h2 class="panel-title"><span class="bracket">[</span> SYSTEM STATUS <span class="bracket">]</span></h2>
+      <div class="status-list">
+        <div class="status-item">
+          <span class="status-label">LINK STATE</span>
+          <span class="status-val" style="color:var(--neon-green)">SECURE</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">TARGET ESP32</span>
+          <span class="status-val">192.168.4.1</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">ACTIVE OPCODE</span>
+          <span class="status-val" id="currentCmd">NONE</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">TELEMETRY</span>
+          <span class="status-val alert" id="currentMsg">STANDBY</span>
         </div>
       </div>
-      <div class="panel">
-        <h2>Status</h2>
-        <div class="top-row">
-          <div class="badge" style="justify-content:center; width:100%;">Current: <span class="pulse" id="currentCmd">none</span></div>
-          <div class="badge" style="justify-content:center; width:100%;">Mode: <span class="pulse">Wi-Fi</span></div>
-        </div>
-        <div class="status" style="margin-bottom:12px;">
-          <div><span class="status-label">Message</span></div>
-          <div id="currentMsg">Ready</div>
-        </div>
-        <div class="hint" style="margin-top:0;">
-          <div>Hold a direction to move.</div>
-          <div class="footer-note">Release to stop instantly.</div>
+      <div class="center-visual">
+         <div class="core-reactor">
+           <div class="core-inner"></div>
+         </div>
+         <!-- Hidden status blocks to keep compatible with previous JS ids -->
+         <span id="cmd" style="display:none">none</span>
+         <span id="msg" style="display:none">Ready</span>
+      </div>
+    </section>
+
+    <section class="panel neon-box">
+      <h2 class="panel-title"><span class="bracket">[</span> ACTIONS &amp; PROTOCOLS <span class="bracket">]</span></h2>
+      
+      <div class="action-group">
+        <h3>POSES</h3>
+        <div class="btn-grid">
+          <button class="action-btn" onclick="sendCmd('P')">BASIC POS</button>
+          <button class="action-btn" onclick="sendCmd('Q')">SPIDER POS</button>
         </div>
       </div>
-      <div class="panel">
-        <h2>Actions</h2>
-        <div class="action-stack">
-          <div class="action-title">Poses</div>
-          <button class="stance" onclick="sendCmd('P')">Basic Position</button>
-          <button class="power" onclick="sendCmd('Q')">Spider Position</button>
-          <div class="action-title">Gestures</div>
-          <button class="gesture" onclick="sendCmd('U')">Hand Shake</button>
-          <button class="gesture" onclick="sendCmd('W')">Hand Wave</button>
-          <button class="gesture" onclick="sendCmd('V')">Body Dance</button>
-          <button class="led-off" id="ledCycleBtn" onclick="cycleLedMode()">LED Off</button>
+
+      <div class="action-group">
+        <h3>GESTURES</h3>
+        <div class="btn-grid" style="grid-template-columns: 1fr;">
+          <button class="action-btn" onclick="sendCmd('U')">HAND SHAKE</button>
+          <button class="action-btn" onclick="sendCmd('W')">HAND WAVE</button>
+          <button class="action-btn" onclick="sendCmd('V')">BODY DANCE</button>
         </div>
       </div>
-    </div>
-    <div class="hint">
-      <div>Wi-Fi password: <span class="pulse">12345678</span></div>
-      <div class="footer-note">Landscape gamepad layout for phone or tablet use.</div>
-    </div>
-  </div>
+
+      <div class="action-group">
+        <h3>UTILITIES</h3>
+        <div class="btn-grid" style="grid-template-columns: 1fr;">
+          <button id="ledCycleBtn" class="action-btn toggle" onclick="cycleLedMode()">ILLUMINATION: OFF</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div>SYS: <span class="footer-highlight">ONLINE</span></div>
+    <div>PING: <span class="footer-highlight">&lt; 5ms</span></div>
+    <div>CTRL: <span class="footer-highlight">ACTIVE</span></div>
+  </footer>
+
   <script>
     let activeMotionCmd = '';
     let ledCycleState = 0;
 
     function setStatus(cmd, message) {
       document.getElementById('cmd').textContent = cmd;
-      document.getElementById('currentCmd').textContent = cmd;
+      document.getElementById('currentCmd').textContent = cmd || 'NONE';
       document.getElementById('msg').textContent = message;
-      document.getElementById('currentMsg').textContent = message;
+      document.getElementById('currentMsg').textContent = message.toUpperCase();
     }
 
-    function setLedButton(label, styleClass) {
-      const button = document.getElementById('ledCycleBtn');
-      button.textContent = label;
-      button.className = styleClass;
+    function cycleLedMode() {
+      const btn = document.getElementById('ledCycleBtn');
+      if (ledCycleState === 0) {
+        ledCycleState = 1;
+        btn.textContent = 'ILLUMINATION: ON';
+        btn.className = 'action-btn toggle on';
+        sendCmd('O');
+      } else if (ledCycleState === 1) {
+        ledCycleState = 2;
+        btn.textContent = 'ILLUMINATION: BLINK';
+        btn.className = 'action-btn toggle blink';
+        sendCmd('K');
+      } else {
+        ledCycleState = 0;
+        btn.textContent = 'ILLUMINATION: OFF';
+        btn.className = 'action-btn toggle';
+        sendCmd('X');
+      }
     }
 
     async function sendCmd(cmd, fireAndForget = false) {
       try {
         if (!fireAndForget) {
-          setStatus(document.getElementById('cmd').textContent, 'Sending ' + cmd + '...');
+          setStatus(document.getElementById('cmd').textContent, 'TX: ' + cmd + '...');
         }
-
-        const res = await fetch('/cmd?go=' + encodeURIComponent(cmd), {
-          cache: 'no-store'
-        });
-
+        const res = await fetch('/cmd?go=' + encodeURIComponent(cmd), { cache: 'no-store' });
         const text = await res.text();
-        setStatus(cmd, fireAndForget ? document.getElementById('currentMsg').textContent : text);
+        
         if (!fireAndForget) {
           setStatus(cmd, text);
+        } else {
+          setStatus(cmd, document.getElementById('currentMsg').textContent);
         }
       } catch (e) {
         if (!fireAndForget) {
-          setStatus(document.getElementById('cmd').textContent, 'Connection error');
+          setStatus(document.getElementById('cmd').textContent, 'LINK_ERR');
         }
       }
     }
 
-    function cycleLedMode() {
-      if (ledCycleState === 0) {
-        ledCycleState = 1;
-        setLedButton('LED On', 'led-on');
-        sendCmd('O');
-        return;
-      }
-
-      if (ledCycleState === 1) {
-        ledCycleState = 2;
-        setLedButton('LED Blink', 'led-blink');
-        sendCmd('K');
-        return;
-      }
-
-      ledCycleState = 0;
-      setLedButton('LED Off', 'led-off');
-      sendCmd('X');
-    }
-
     function startHold(cmd) {
-      if (activeMotionCmd === cmd) {
-        return;
-      }
-
+      if (activeMotionCmd === cmd) return;
       stopHold(true);
       activeMotionCmd = cmd;
-      setStatus(cmd, 'Holding ' + cmd);
+      setStatus(cmd, 'HOLD: ' + cmd);
       sendCmd(cmd, true);
     }
 
     function stopHold(silent) {
-      if (!activeMotionCmd) {
-        return;
-      }
-
+      if (!activeMotionCmd) return;
       activeMotionCmd = '';
       sendCmd('S', true);
-
-      if (!silent) {
-        setStatus('S', 'Stopped');
-      }
+      if (!silent) setStatus('S', 'HALT');
     }
 
     for (const btn of document.querySelectorAll('button.hold')) {
@@ -561,9 +399,7 @@ const char indexHtml[] PROGMEM = R"rawliteral(
     window.addEventListener('blur', () => stopHold(true));
     window.addEventListener('pagehide', () => stopHold(true));
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState !== 'visible') {
-        stopHold(true);
-      }
+      if (document.visibilityState !== 'visible') stopHold(true);
     });
   </script>
 </body>
