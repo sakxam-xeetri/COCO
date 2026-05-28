@@ -334,8 +334,8 @@ const char indexHtml[] PROGMEM = R"rawliteral(
       <div class="action-group">
         <h3>UTILITIES</h3>
         <div class="btn-grid" style="grid-template-columns: 1fr;">
-          <button id="ledCycleBtn"
-          <button class="action-btn" onclick="window.location.href=\'/update\'">SYS UPDATE</button> class="action-btn toggle" onclick="cycleLedMode()">ILLUMINATION: OFF</button>
+          <button id="ledCycleBtn" class="action-btn toggle" onclick="cycleLedMode()">ILLUMINATION: OFF</button>
+          <button class="action-btn" onclick="window.location.href='/update'">SYS UPDATE</button>
         </div>
       </div>
     </section>
@@ -506,8 +506,7 @@ void setup() {
   }, []() {
     HTTPUpload& upload = server.upload();
     if (upload.status == UPLOAD_FILE_START) {
-      Serial.printf("Update: %s
-", upload.filename.c_str());
+      Serial.printf("Update: %s\n", upload.filename.c_str());
       if (!Update.begin(UPDATE_SIZE_UNKNOWN)) {
         Update.printError(Serial);
       }
@@ -517,8 +516,7 @@ void setup() {
       }
     } else if (upload.status == UPLOAD_FILE_END) {
       if (Update.end(true)) {
-        Serial.printf("Update Success: %u bytes
-", upload.totalSize);
+        Serial.printf("Update Success: %u bytes\n", upload.totalSize);
       } else {
         Update.printError(Serial);
       }
